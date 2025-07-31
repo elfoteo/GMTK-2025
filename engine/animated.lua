@@ -4,12 +4,15 @@
 ---@class AnimationState
 ---@field images love.Image[] A list of images (frames) for this state.
 ---@field delay number The delay in seconds between each frame.
+---@field loops? boolean Whether the animation should loop. Defaults to true.
+---@field on_complete? function An optional function to call when a non-looping animation finishes.
 
 ---@class Animated
 ---@field states table<string, AnimationState> A dictionary of animation states.
 ---@field current_state string | nil The name of the currently active animation state.
 ---@field timer number The internal timer used to track elapsed time for frame changes.
 ---@field current_frame number The index of the current image frame being displayed from the active state.
+---@field is_finished boolean For non-looping animations, indicates if the animation has completed.
 local Animated = {}
 Animated.__index = Animated
 
@@ -26,7 +29,9 @@ Animated.__index = Animated
 ---        },
 ---        walk = {
 ---            images = { love.graphics.newImage("walk1.png"), love.graphics.newImage("walk2.png") },
----            delay = 0.2
+---            delay = 0.2,
+---            loops = false,
+---            on_complete = function() print("Walk finished!") end
 ---        }
 ---    })
 ---
@@ -40,6 +45,7 @@ function Animated:new(states)
     animation.current_state = nil
     animation.timer = 0
     animation.current_frame = 1
+    animation.is_finished = false
 
     return animation
 end
@@ -52,6 +58,7 @@ function Animated:set_state(state_name)
         self.current_state = state_name
         self.timer = 0
         self.current_frame = 1
+        self.is_finished = false
     end
 end
 
@@ -59,7 +66,7 @@ end
 ---This should be called once per frame.
 ---@param dt number The time elapsed since the last update in seconds (delta time).
 function Animated:update(dt)
-    if not self.current_state then return end
+    if not self.current_state or self.is_finished then return end
 
     local state = self.states[self.current_state]
     if not state or not state.images or #state.images == 0 then return end
@@ -67,7 +74,20 @@ function Animated:update(dt)
     self.timer = self.timer + dt
     if self.timer >= state.delay then
         self.timer = self.timer - state.delay
-        self.current_frame = (self.current_frame % #state.images) + 1
+        local loops = state.loops == nil or state.loops -- Default to true
+
+        if self.current_frame < #state.images then
+            self.current_frame = self.current_frame + 1
+        else
+            if loops then
+                self.current_frame = 1
+            else
+                self.is_finished = true
+                if state.on_complete then
+                    state.on_complete()
+                end
+            end
+        end
     end
 end
 
@@ -81,6 +101,7 @@ end
 ---@param oy? number The origin offset in the y-direction. Defaults to 0.
 function Animated:draw(x, y, r, sx, sy, ox, oy)
     if not self.current_state then return end
+    love.graphics.setColor(1, 1, 1, 1)
 
     local state = self.states[self.current_state]
     if not state or not state.images or #state.images == 0 then return end

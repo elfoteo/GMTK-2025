@@ -16,7 +16,7 @@ local GrassManager       = require("engine.grass.grass_manager")
 
 local CANVAS_W, CANVAS_H = 384, 216
 
----@class DemoScene : Scene
+---@class MainScene : Scene
 ---@field crosshair Crosshair
 ---@field customFont CustomFont
 ---@field customFont8px CustomFont
@@ -25,7 +25,6 @@ local CANVAS_W, CANVAS_H = 384, 216
 ---@field enemies table<number, {enemy: Enemy, respawn_timer: number|nil}>
 ---@field particleSystem ParticleSystem
 ---@field background Background
----@field bullets table<number, ProjectileBase>
 ---@field collectibles table<string, Collectible>
 ---@field score number
 ---@field howtoMoveImage any
@@ -41,15 +40,15 @@ local CANVAS_W, CANVAS_H = 384, 216
 ---@field frame_times table
 ---@field frame_time_index number
 ---@field avg_fps number
-local DemoScene          = setmetatable({}, { __index = Scene })
-DemoScene.__index        = DemoScene
+local MainScene          = setmetatable({}, { __index = Scene })
+MainScene.__index        = MainScene
 
----Constructs a new DemoScene.
----@return DemoScene
-function DemoScene.new()
+---Constructs a new MainScene.
+---@return MainScene
+function MainScene.new()
     local self = Scene.new(CANVAS_W, CANVAS_H)
-    setmetatable(self, DemoScene)
-    ---@cast self DemoScene
+    setmetatable(self, MainScene)
+    ---@cast self MainScene
     -- placeholders; real init in load()
     self.crosshair             = nil
     self.customFont            = nil
@@ -57,7 +56,6 @@ function DemoScene.new()
     self.player                = nil
     self.enemies               = {}
     self.background            = nil
-    self.bullets               = {}
     self.collectibles          = {}
     self.score                 = 0
     self.howtoMoveImage        = nil
@@ -76,7 +74,7 @@ function DemoScene.new()
 end
 
 ---Called once when the scene is loaded.
-function DemoScene:load()
+function MainScene:load()
     self:recalcViewport()
 
     -- mouse
@@ -115,18 +113,17 @@ function DemoScene:load()
     for i, spawn_point in ipairs(self.tilemap.enemy_spawns) do
         local enemy_x = spawn_point.tile_x * self.tilemap.tile_size + self.tilemap.tile_size / 2
         local enemy_y = spawn_point.tile_y * self.tilemap.tile_size + self.tilemap.tile_size / 2
-        self.enemies[i] = { enemy = Enemy.new(self, enemy_x, enemy_y, 109, 16), respawn_timer = nil }
+        -- self.enemies[i] = { enemy = Enemy.new(self, enemy_x, enemy_y, 109, 16), respawn_timer = nil }
     end
     for key, spawn_point in pairs(self.tilemap.collectible_spawns) do
         local collectible_x = spawn_point.tile_x * self.tilemap.tile_size + self.tilemap.tile_size / 2
         local collectible_y = spawn_point.tile_y * self.tilemap.tile_size + self.tilemap.tile_size / 2
         if spawn_point.type == "tti-viper" then
             self.collectibles[key] = Collectible.new(collectible_x, collectible_y, spawn_point.type,
-                "assets/weapons/tti-viper.png")
+                "assets/gui/crosshair.png")
         end
     end
     self.background = Background.new(self.camera, self, { 0.0, 0.5, 0.35, 1.0 }, { 0.0, 0.4, 0.55, 1.0 })
-    self.bullets = {}
     self.score = 0
 
     self.camera:teleport(self.player.x, self.player.y)
@@ -134,7 +131,7 @@ end
 
 ---Handles the result of a bullet collision.
 ---@param hitResult table The collision information from Projectile:update.
-function DemoScene:handleBulletCollision(hitResult)
+function MainScene:handleBulletCollision(hitResult)
     if hitResult.type == "wall" then
         self.particleSystem:emitCone(
             hitResult.x, hitResult.y,
@@ -170,7 +167,7 @@ local startFading = false;
 
 ---Update all scene elements.
 ---@param dt number
-function DemoScene:update(dt)
+function MainScene:update(dt)
     Scene.update(self, dt)
 
     -- background
@@ -203,11 +200,7 @@ function DemoScene:update(dt)
     end
 
     -- player & enemy logic
-    local proj = self.player:update(dt, self.tilemap, self.particleSystem)
-    -- shooting
-    if proj then
-        table.insert(self.bullets, proj)
-    end
+    self.player:update(dt, self.tilemap, self.particleSystem)
 
     for i, enemy_data in ipairs(self.enemies) do
         if enemy_data.enemy then
@@ -242,24 +235,15 @@ function DemoScene:update(dt)
     end
 
     -- bullet updates & collisions
-    for i = #self.bullets, 1, -1 do
-        local b = self.bullets[i]
-        local hitResult = b:update(dt, self.particleSystem, self.tilemap, self.enemies, world_min_x, world_max_x,
-            world_min_y, world_max_y)
-
-        if hitResult then
-            self:handleBulletCollision(hitResult)
-            table.remove(self.bullets, i)
-        end
-    end
+    self.player:updateProjectiles(dt, self.particleSystem, self.tilemap, self.enemies, world_min_x, world_max_x,
+        world_min_y, world_max_y)
 
     -- Collectible collision
     for key, collectible in pairs(self.collectibles) do
         collectible:update(dt)
         if collectible:checkCollision(self.player) then
             if collectible.type == "tti-viper" then
-                self.player:addWeapon(require("game.weapons.tti-viper").new())
-                self.player:setCurrentWeapon("tti-viper")
+                -- Pickup collectible
             end
             self.collectibles[key] = nil -- Remove collectible after collection
         end
@@ -300,7 +284,7 @@ function DemoScene:update(dt)
 end
 
 ---Draw the entire scene.
-function DemoScene:draw()
+function MainScene:draw()
     -- render into low‑res canvas
     love.graphics.setCanvas(self.canvas)
     love.graphics.clear()
@@ -328,15 +312,12 @@ function DemoScene:draw()
     end
 
     self.particleSystem:draw()
-    self.player:drawWeapon()
     self.player:draw()
+    self.player:drawProjectiles()
     for _, enemy_data in ipairs(self.enemies) do
         if enemy_data.enemy then
             enemy_data.enemy:draw()
         end
-    end
-    for _, b in ipairs(self.bullets) do
-        b:draw()
     end
 
     self.camera:detach()
@@ -357,7 +338,7 @@ function DemoScene:draw()
 end
 
 ---Handle key presses.
-function DemoScene:keypressed(key)
+function MainScene:keypressed(key)
     if key == "f11" then
         love.window.setFullscreen(
             not love.window.getFullscreen(),
@@ -368,14 +349,9 @@ function DemoScene:keypressed(key)
 end
 
 ---Handle mouse presses.
-function DemoScene:mousepressed(_, _, button)
-    local current_weapon = self.player.weapons[self.player.current_weapon_index]
-    if button == 1 and not current_weapon.repeating then
-        local proj = self.player:singleShoot(self.particleSystem)
-        if proj then
-            table.insert(self.bullets, proj)
-        end
-    end
+function MainScene:mousepressed(x, y, button)
+    local cx, cy = self:toCanvas(x, y)
+    self.player:mousepressed(cx, cy, button)
 end
 
-return DemoScene
+return MainScene

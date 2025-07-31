@@ -53,7 +53,7 @@ function DeathScene.new()
         button_height,
         "Retry",
         function()
-            SceneManager.gotoScene(require("scenes.demo_scene").new())
+            SceneManager.gotoScene(require("scenes.main_scene").new())
         end,
         self.customFont12px,
         { 0.6, 0.6, 0.6, 1 }, -- White
