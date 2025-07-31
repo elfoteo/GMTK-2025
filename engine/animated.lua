@@ -12,7 +12,7 @@
 ---@field current_state string | nil The name of the currently active animation state.
 ---@field timer number The internal timer used to track elapsed time for frame changes.
 ---@field current_frame number The index of the current image frame being displayed from the active state.
----@field is_finished boolean For non-looping animations, indicates if the animation has completed.
+---@field is_reversed boolean For non-looping animations, indicates if the animation is playing in reverse.
 local Animated = {}
 Animated.__index = Animated
 
@@ -46,6 +46,7 @@ function Animated:new(states)
     animation.timer = 0
     animation.current_frame = 1
     animation.is_finished = false
+    animation.is_reversed = false
 
     return animation
 end
@@ -53,11 +54,13 @@ end
 ---Sets the current animation state, resetting the animation timer and frame.
 ---If the provided state_name is the same as the current one, this function does nothing.
 ---@param state_name string The name of the state to switch to. Must be a key in the `states` table.
-function Animated:set_state(state_name)
-    if self.current_state ~= state_name then
+---@param reversed? boolean Whether to play the animation in reverse. Defaults to false.
+function Animated:set_state(state_name, reversed)
+    if self.current_state ~= state_name or self.is_reversed ~= reversed then
         self.current_state = state_name
         self.timer = 0
-        self.current_frame = 1
+        self.is_reversed = reversed or false
+        self.current_frame = self.is_reversed and #self.states[state_name].images or 1
         self.is_finished = false
     end
 end
@@ -76,15 +79,30 @@ function Animated:update(dt)
         self.timer = self.timer - state.delay
         local loops = state.loops == nil or state.loops -- Default to true
 
-        if self.current_frame < #state.images then
-            self.current_frame = self.current_frame + 1
-        else
-            if loops then
-                self.current_frame = 1
+        if self.is_reversed then
+            if self.current_frame > 1 then
+                self.current_frame = self.current_frame - 1
             else
-                self.is_finished = true
-                if state.on_complete then
-                    state.on_complete()
+                if loops then
+                    self.current_frame = #state.images
+                else
+                    self.is_finished = true
+                    if state.on_complete then
+                        state.on_complete()
+                    end
+                end
+            end
+        else
+            if self.current_frame < #state.images then
+                self.current_frame = self.current_frame + 1
+            else
+                if loops then
+                    self.current_frame = 1
+                else
+                    self.is_finished = true
+                    if state.on_complete then
+                        state.on_complete()
+                    end
                 end
             end
         end

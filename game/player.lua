@@ -120,6 +120,59 @@ function Player.new(scene, x, y, speed)
                 love.graphics.newImage("assets/entities/player-walk4.png"),
             },
             delay = 0.1,
+        },
+        turn_to_climb = {
+            images = {
+                love.graphics.newImage("assets/entities/player-turning1.png"),
+                love.graphics.newImage("assets/entities/player-turning2.png"),
+                love.graphics.newImage("assets/entities/player-turning3.png"),
+                love.graphics.newImage("assets/entities/player-turning4.png"),
+                love.graphics.newImage("assets/entities/player-turning5.png"),
+                love.graphics.newImage("assets/entities/player-turning6.png"),
+                love.graphics.newImage("assets/entities/player-turning7.png"),
+                love.graphics.newImage("assets/entities/player-turning8.png"),
+                love.graphics.newImage("assets/entities/player-turning9.png"),
+                love.graphics.newImage("assets/entities/player-turning10.png"),
+                love.graphics.newImage("assets/entities/player-turning11.png"),
+                love.graphics.newImage("assets/entities/player-turning12.png"),
+                love.graphics.newImage("assets/entities/player-turning13.png"),
+                love.graphics.newImage("assets/entities/player-turning14.png"),
+            },
+            delay = 0.02,
+            loops = false,
+            on_complete = function() p.animation:set_state("climbing") end
+        },
+        climbing = {
+            images = {
+                love.graphics.newImage("assets/entities/player-climbing1.png"),
+                love.graphics.newImage("assets/entities/player-climbing2.png"),
+                love.graphics.newImage("assets/entities/player-climbing3.png"),
+                love.graphics.newImage("assets/entities/player-climbing4.png"),
+                love.graphics.newImage("assets/entities/player-climbing5.png"),
+                love.graphics.newImage("assets/entities/player-climbing6.png"),
+            },
+            delay = 0.24,
+        },
+        turn_from_climb = {
+            images = {
+                love.graphics.newImage("assets/entities/player-turning14.png"),
+                love.graphics.newImage("assets/entities/player-turning13.png"),
+                love.graphics.newImage("assets/entities/player-turning12.png"),
+                love.graphics.newImage("assets/entities/player-turning11.png"),
+                love.graphics.newImage("assets/entities/player-turning10.png"),
+                love.graphics.newImage("assets/entities/player-turning9.png"),
+                love.graphics.newImage("assets/entities/player-turning8.png"),
+                love.graphics.newImage("assets/entities/player-turning7.png"),
+                love.graphics.newImage("assets/entities/player-turning6.png"),
+                love.graphics.newImage("assets/entities/player-turning5.png"),
+                love.graphics.newImage("assets/entities/player-turning4.png"),
+                love.graphics.newImage("assets/entities/player-turning3.png"),
+                love.graphics.newImage("assets/entities/player-turning2.png"),
+                love.graphics.newImage("assets/entities/player-turning1.png"),
+            },
+            delay = 0.02,
+            loops = false,
+            on_complete = function() p.animation:set_state("idle") end
         }
     })
     p.animation:set_state("idle")
@@ -146,20 +199,22 @@ function Player:update(dt, level, particle_system)
 
     -- Climbing logic
     local onClimbable = level:getTileAtPixel(self.x, self.y) and level:getTileAtPixel(self.x, self.y).climbable
-    
-    if onClimbable and dy ~= 0 then
+
+    if onClimbable and dy ~= 0 and not self.isClimbing then
         self.isClimbing = true
-    elseif not onClimbable then
+        self.animation:set_state("turn_to_climb")
+    elseif self.isClimbing and not onClimbable then
         self.isClimbing = false
+        self.animation:set_state("turn_from_climb")
     end
 
     if self.isClimbing then
         self.vy = dy * self.speed
         self.onGround = false
-        if dy ~= 0 then
-            self.animation:set_state("climb")
-        else
+        if dy == 0 and self.animation.current_state == "climbing" then
             self.animation:set_state("idle")
+        elseif dy ~= 0 and self.animation.current_state ~= "turn_to_climb" and self.animation.current_state ~= "climbing" then
+            self.animation:set_state("climbing")
         end
     else
         -- Apply gravity
