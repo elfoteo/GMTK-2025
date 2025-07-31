@@ -139,8 +139,21 @@ char font8x8_basic[128][8] = {
 
 
 def parse_c_array(text):
-    rows = re.findall(r'\{([^}]+)\}', text)
-    font = []
+    # Find the start of the array data, after the first '{'
+    content_start = text.find('{')
+    if content_start == -1:
+        return []
+    # Find the end of the array data, before the last '}'
+    content_end = text.rfind('}')
+    if content_end == -1:
+        return []
+
+    # Extract the content between the outer braces
+    content = text[content_start + 1:content_end]
+
+    # Add the first and last characters manually
+    font = [[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]]
+    rows = re.findall(r'{([^}]+)}', content)
     for row in rows:
         bytes8 = [int(tok.strip(), 16)
                   for tok in row.split(',') if tok.strip().startswith('0x')]

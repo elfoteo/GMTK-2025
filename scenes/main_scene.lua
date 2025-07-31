@@ -90,12 +90,12 @@ function MainScene:load()
 
     -- fonts
     self.customFont = CustomFont.new(
-        "assets/font/PressStart2P-Regular/PressStart2P-Regular-16px.fnt",
-        "assets/font/PressStart2P-Regular/PressStart2P-Regular-16px.png"
+        "assets/font/font8x8_basic_16.fnt",
+        "assets/font/font8x8_basic_16.png"
     )
     self.customFont8px = CustomFont.new(
-        "assets/font/PressStart2P-Regular/PressStart2P-Regular-8px.fnt",
-        "assets/font/PressStart2P-Regular/PressStart2P-Regular-8px.png"
+        "assets/font/font8x8_basic_8.fnt",
+        "assets/font/font8x8_basic_8.png"
     )
 
     math.randomseed(os.time())

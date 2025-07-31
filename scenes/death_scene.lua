@@ -23,16 +23,16 @@ function DeathScene.new()
     local StyledButton = require("engine.ui.styled_button")
 
     self.customFont24px = CustomFont.new(
-        "assets/font/PressStart2P-Regular/PressStart2P-Regular-24px.fnt",
-        "assets/font/PressStart2P-Regular/PressStart2P-Regular-24px.png"
+        "assets/font/font8x8_basic_24.fnt",
+        "assets/font/font8x8_basic_24.png"
     )
     self.customFont16px = CustomFont.new(
-        "assets/font/PressStart2P-Regular/PressStart2P-Regular-16px.fnt",
-        "assets/font/PressStart2P-Regular/PressStart2P-Regular-16px.png"
+        "assets/font/font8x8_basic_16.fnt",
+        "assets/font/font8x8_basic_16.png"
     )
     self.customFont12px = CustomFont.new(
-        "assets/font/PressStart2P-Regular/PressStart2P-Regular-12px.fnt",
-        "assets/font/PressStart2P-Regular/PressStart2P-Regular-12px.png"
+        "assets/font/font8x8_basic_12.fnt",
+        "assets/font/font8x8_basic_12.png"
     )
 
     love.mouse.setVisible(true)
