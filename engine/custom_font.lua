@@ -30,4 +30,17 @@ function CustomFont:print(text, x, y, color)
     love.graphics.pop()
 end
 
+--- Returns the width of the given text in pixels.
+---@param text string The text to measure.
+---@return number The width of the text.
+function CustomFont:getWidth(text)
+    return self.font:getWidth(text)
+end
+
+--- Returns the height of the font in pixels.
+---@return number The height of the font.
+function CustomFont:getHeight()
+    return self.font:getHeight()
+end
+
 return CustomFont

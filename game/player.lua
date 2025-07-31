@@ -76,7 +76,7 @@ function Player.new(scene, x, y, speed)
                 love.graphics.newImage("assets/entities/player-jump-start1.png"),
                 love.graphics.newImage("assets/entities/player-jump-start2.png"),
             },
-            delay = 0.1,
+            delay = 0.2,
             loops = false,
             on_complete = function() p.animation:set_state("jump_fall") end
         },
@@ -84,15 +84,17 @@ function Player.new(scene, x, y, speed)
             images = {
                 love.graphics.newImage("assets/entities/player-jump-start2.png"),
             },
-            delay = 0.1,
+            delay = 0.2,
         },
         jump_end = {
             images = {
                 love.graphics.newImage("assets/entities/player-jump-end1.png"),
                 love.graphics.newImage("assets/entities/player-jump-end2.png"),
                 love.graphics.newImage("assets/entities/player-jump-end3.png"),
+                love.graphics.newImage("assets/entities/player-jump-end4.png"),
+                love.graphics.newImage("assets/entities/player-jump-end5.png"),
             },
-            delay = 0.1,
+            delay = 0.08,
             loops = false,
             on_complete = function() p.animation:set_state("idle") end
         }
@@ -133,16 +135,18 @@ function Player:update(dt, level, particle_system)
     local halfH      = self.hitboxH / 2
 
     -- Horizontal collision
-    if dx ~= 0 then
-        if level:checkCollision(nextX - halfW, self.y - halfH, self.hitboxW, self.hitboxH) then
-            nextX = self.x
-            if self.onGround then self.animation:set_state("idle") end
+    if self.animation.current_state ~= "jump_end" then
+        if dx ~= 0 then
+            if level:checkCollision(nextX - halfW, self.y - halfH, self.hitboxW, self.hitboxH) then
+                nextX = self.x
+                if self.onGround then self.animation:set_state("idle") end
+            else
+                if self.onGround then self.animation:set_state("walk") end
+                self.direction = dx > 0 and 1 or -1
+            end
         else
-            if self.onGround then self.animation:set_state("walk") end
-            self.direction = dx > 0 and 1 or -1
+            if self.onGround then self.animation:set_state("idle") end
         end
-    else
-        if self.onGround then self.animation:set_state("idle") end
     end
 
     -- Vertical collision
@@ -168,10 +172,7 @@ function Player:update(dt, level, particle_system)
     self.vx = (self.x - oldX) / dt
     self.vy = (self.y - oldY) / dt
 
-    -- Example: grass rippling effect
-    if self.scene.grassManager then
-        self.scene.grassManager:apply_force({ x = self.x, y = self.y }, 10, 20)
-    end
+    self.scene.grassManager:apply_force({ x = self.x, y = self.y }, 16, 22)
 end
 
 function Player:updateProjectiles(dt, particleSystem, tilemap, enemies, world_min_x, world_max_x, world_min_y,
@@ -206,8 +207,8 @@ end
 ---@param other_entity table The other entity (must have x, y, size).
 ---@return boolean True if overlapping.
 function Player:checkCollision(other_entity)
-    local halfW  = self.hitboxW / 2
-    local halfH = self.hitboxH / 2
+    local halfW     = self.hitboxW / 2
+    local halfH     = self.hitboxH / 2
     local halfOther = other_entity.size / 2
 
     return

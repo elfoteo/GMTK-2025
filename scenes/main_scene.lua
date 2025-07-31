@@ -110,20 +110,21 @@ function MainScene:load()
     -- initialize game systems & entities
     self.spawn_x, self.spawn_y = self.tilemap:getPlayerSpawnAbsolute()
     self.player = Player.new(self, self.spawn_x, self.spawn_y, 80)
-    for i, spawn_point in ipairs(self.tilemap.enemy_spawns) do
-        local enemy_x = spawn_point.tile_x * self.tilemap.tile_size + self.tilemap.tile_size / 2
-        local enemy_y = spawn_point.tile_y * self.tilemap.tile_size + self.tilemap.tile_size / 2
-        -- self.enemies[i] = { enemy = Enemy.new(self, enemy_x, enemy_y, 109, 16), respawn_timer = nil }
-    end
+    -- for i, spawn_point in ipairs(self.tilemap.enemy_spawns) do
+    --     local enemy_x = spawn_point.tile_x * self.tilemap.tile_size + self.tilemap.tile_size / 2
+    --     local enemy_y = spawn_point.tile_y * self.tilemap.tile_size + self.tilemap.tile_size / 2
+    --     self.enemies[i] = { enemy = Enemy.new(self, enemy_x, enemy_y, 109, 16), respawn_timer = nil }
+    -- end
     for key, spawn_point in pairs(self.tilemap.collectible_spawns) do
         local collectible_x = spawn_point.tile_x * self.tilemap.tile_size + self.tilemap.tile_size / 2
         local collectible_y = spawn_point.tile_y * self.tilemap.tile_size + self.tilemap.tile_size / 2
-        if spawn_point.type == "tti-viper" then
-            self.collectibles[key] = Collectible.new(collectible_x, collectible_y, spawn_point.type,
-                "assets/gui/crosshair.png")
+        if spawn_point.type == "note" then
+            self.collectibles[key] = Collectible.new(collectible_x, collectible_y, spawn_point.type)
         end
     end
-    self.background = Background.new(self.camera, self, { 0.0, 0.5, 0.35, 1.0 }, { 0.0, 0.4, 0.55, 1.0 })
+    self.background = Background.new(self.camera, self, { 0.60, 0.22, 0.10, 1.0 },
+        { 0.84, 0.68, 0.38, 1.0 })
+
     self.score = 0
 
     self.camera:teleport(self.player.x, self.player.y)
@@ -240,13 +241,7 @@ function MainScene:update(dt)
 
     -- Collectible collision
     for key, collectible in pairs(self.collectibles) do
-        collectible:update(dt)
-        if collectible:checkCollision(self.player) then
-            if collectible.type == "tti-viper" then
-                -- Pickup collectible
-            end
-            self.collectibles[key] = nil -- Remove collectible after collection
-        end
+        collectible:update(dt, self.player)
     end
 
     -- particles & camera follow
@@ -296,7 +291,7 @@ function MainScene:draw()
 
     -- Draw collectibles
     for _, collectible in pairs(self.collectibles) do
-        collectible:draw()
+        collectible:draw(self.customFont8px)
     end
 
     -- Draw instructions in world space
@@ -345,6 +340,17 @@ function MainScene:keypressed(key)
             "desktop"
         )
     end
+
+    if key == "e" then
+        for k, collectible in pairs(self.collectibles) do
+            if collectible:checkPickupRange() then
+                self.collectibles[k] = nil
+                -- Do something with the note, like add it to an inventory
+                break -- only pick up one at a time
+            end
+        end
+    end
+
     self.player:keypressed(key)
 end
 

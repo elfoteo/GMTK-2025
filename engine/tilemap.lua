@@ -32,18 +32,18 @@ end
 ---Creates a new, empty TileMap.
 ---@return TileMap
 function TileMap.new()
-    local tm          = setmetatable({}, TileMap)
-    tm.tiles          = {}
-    tm.tile_grid      = {}
-    tm.tile_size      = 0
-    tm.width          = 0
-    tm.height         = 0
-    tm.player_spawn   = { tile_x = 0, tile_y = 0 }
-    tm.enemy_spawns   = {}
+    local tm              = setmetatable({}, TileMap)
+    tm.tiles              = {}
+    tm.tile_grid          = {}
+    tm.tile_size          = 0
+    tm.width              = 0
+    tm.height             = 0
+    tm.player_spawn       = { tile_x = 0, tile_y = 0 }
+    tm.enemy_spawns       = {}
     tm.collectible_spawns = {}
-    tm.particleSystem = nil
-    tm.wind_manager   = WindManager.new()
-    tm.grass_manager  = nil
+    tm.particleSystem     = nil
+    tm.wind_manager       = WindManager.new()
+    tm.grass_manager      = nil
     return tm
 end
 
@@ -118,10 +118,8 @@ function TileMap:loadFromTiled(filename)
         end
 
         for i = 0, tileset.tilecount - 1 do
-            local tile_x = (i % tileset.columns) * self.tile_size
-            local tile_y = math.floor(i / tileset.columns) * self.tile_size
-            
-
+            -- local tile_x = (i % tileset.columns) * self.tile_size
+            -- local tile_y = math.floor(i / tileset.columns) * self.tile_size
             local current_gid = i + tileset.firstgid
             if not tile_properties[current_gid] then
                 tile_properties[current_gid] = { collides = true }
@@ -153,6 +151,30 @@ function TileMap:loadFromTiled(filename)
                                         tile_y = chunk.y + y,
                                         type = tile_properties[tile_gid].collectible
                                     }
+                                    
+                                    local grass_density_prop = tile_properties[tile_gid].grass_density
+                                    local grass_types_prop = tile_properties[tile_gid].grass_types
+
+                                    if grass_density_prop or grass_types_prop then
+                                        local final_density = 5                     -- Default density
+                                        local final_grass_types = { 1, 2, 3, 4, 5 } -- Default types
+
+                                        if type(grass_density_prop) == "number" then
+                                            final_density = grass_density_prop
+                                        end
+
+                                        if type(grass_types_prop) == "string" then
+                                            local parsed_types = parse_grass_string(grass_types_prop)
+                                            if #parsed_types > 0 then
+                                                final_grass_types = parsed_types
+                                            end
+                                        end
+
+                                        if final_density > 0 then -- Only place grass if density is positive
+                                            self.grass_manager:place_tile({ x = chunk.x + x, y = chunk.y + y }, final_density,
+                                                final_grass_types)
+                                        end
+                                    end
                                 else
                                     local quad = quads[tile_gid]
                                     if quad then
