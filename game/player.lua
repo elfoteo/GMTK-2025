@@ -198,7 +198,9 @@ function Player:update(dt, level, particle_system)
     self.animation:update(dt)
 
     -- Climbing logic
-    local onClimbable = level:getTileAtPixel(self.x, self.y) and level:getTileAtPixel(self.x, self.y).climbable
+    local onClimbable = level:getTileAtPixel(self.x, self.y) and level:getTileAtPixel(self.x, self.y).climbable or
+        level:getTileAtPixel(self.x, self.y + self.hitboxH * 0.7) and
+        level:getTileAtPixel(self.x, self.y + self.hitboxH * 0.7).climbable
 
     if onClimbable and dy ~= 0 and not self.isClimbing then
         self.isClimbing = true
@@ -229,6 +231,12 @@ function Player:update(dt, level, particle_system)
     end
 
     -- Compute tentative positions
+    if self.isClimbing then
+        self.hitboxW = 12
+    else
+        self.hitboxW = 16
+    end
+
     local oldX, oldY = self.x, self.y
     local halfW      = self.hitboxW / 2
     local halfH      = self.hitboxH / 2
