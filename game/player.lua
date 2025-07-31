@@ -15,6 +15,7 @@ local SparkParticle       = require("engine.particles.spark_particle")
 ---@field vx           number        Current horizontal velocity.
 ---@field vy           number        Current vertical velocity.
 ---@field onGround     boolean       Whether the player is standing on solid ground.
+---@field isClimbing   boolean       Whether the player is climbing.
 ---@field animation    Animated      The player's animation.
 ---@field direction    number        The direction the player is facing (1 or -1).
 ---@field projectiles  table         The projectiles shot by the player.
@@ -41,6 +42,7 @@ function Player.new(scene, x, y, speed)
     p.vx          = 0
     p.vy          = 0
     p.onGround    = false
+    p.isClimbing  = false
 
     -- Sizing
     p.size        = 26 -- Visual size
@@ -109,6 +111,15 @@ function Player.new(scene, x, y, speed)
             delay = 0.05,
             loops = false,
             on_complete = function() p.animation:set_state("idle") end
+        },
+        climb = {
+            images = {
+                love.graphics.newImage("assets/entities/player-walk1.png"),
+                love.graphics.newImage("assets/entities/player-walk2.png"),
+                love.graphics.newImage("assets/entities/player-walk3.png"),
+                love.graphics.newImage("assets/entities/player-walk4.png"),
+            },
+            delay = 0.1,
         }
     })
     p.animation:set_state("idle")
@@ -126,14 +137,37 @@ function Player:update(dt, level, particle_system)
     if love.keyboard.isDown("a", "left") then dx = dx - 1 end
     if love.keyboard.isDown("d", "right") then dx = dx + 1 end
 
+    local dy = 0
+    if love.keyboard.isDown("w", "up", "space") then dy = dy - 1 end
+    if love.keyboard.isDown("s", "down") then dy = dy + 1 end
+
     -- Animation state & facing
     self.animation:update(dt)
 
-    -- Apply gravity
-    self.vy = self.vy + GRAVITY * dt
+    -- Climbing logic
+    local onClimbable = level:getTileAtPixel(self.x, self.y) and level:getTileAtPixel(self.x, self.y).climbable
+    
+    if onClimbable and dy ~= 0 then
+        self.isClimbing = true
+    elseif not onClimbable then
+        self.isClimbing = false
+    end
+
+    if self.isClimbing then
+        self.vy = dy * self.speed
+        self.onGround = false
+        if dy ~= 0 then
+            self.animation:set_state("climb")
+        else
+            self.animation:set_state("idle")
+        end
+    else
+        -- Apply gravity
+        self.vy = self.vy + GRAVITY * dt
+    end
 
     -- Jump
-    if self.onGround and love.keyboard.isDown("w", "space") then
+    if self.onGround and love.keyboard.isDown("space") and not self.isClimbing then
         self.vy       = JUMP_FORCE
         self.onGround = false
         self.animation:set_state("jump_start")
@@ -174,7 +208,7 @@ function Player:update(dt, level, particle_system)
     if dx ~= 0 then
         self.direction = dx > 0 and 1 or -1
     end
-    if self.animation.current_state ~= "jump_end" and self.animation.current_state ~= "attack" then
+    if self.animation.current_state ~= "jump_end" and self.animation.current_state ~= "attack" and not self.isClimbing then
         if self.onGround then
             if dx == 0 then
                 self.animation:set_state("idle")

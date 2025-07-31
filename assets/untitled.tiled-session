@@ -45,7 +45,7 @@
     "openFiles": [
     ],
     "project": "untitled.tiled-project",
-    "property.type": "string",
+    "property.type": "bool",
     "recentFiles": [
         "map_flight.tmx"
     ],

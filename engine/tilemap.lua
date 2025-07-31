@@ -114,6 +114,9 @@ function TileMap:loadFromTiled(filename)
                 if tile_data.properties and tile_data.properties.collectible ~= nil then
                     tile_properties[gid].collectible = tile_data.properties.collectible
                 end
+                if tile_data.properties and tile_data.properties.climbable ~= nil then
+                    tile_properties[gid].climbable = tile_data.properties.climbable
+                end
             end
         end
 
@@ -144,14 +147,16 @@ function TileMap:loadFromTiled(filename)
                                 if tile_properties[tile_gid] and tile_properties[tile_gid].playerSpawn == true then
                                     self.player_spawn = { tile_x = chunk.x + x, tile_y = chunk.y + y }
                                 elseif tile_properties[tile_gid] and tile_properties[tile_gid].enemy then
-                                    table.insert(self.enemy_spawns, { tile_x = chunk.x + x, tile_y = chunk.y + y, type = tile_properties[tile_gid].enemy })
+                                    table.insert(self.enemy_spawns,
+                                        { tile_x = chunk.x + x, tile_y = chunk.y + y, type = tile_properties[tile_gid]
+                                        .enemy })
                                 elseif tile_properties[tile_gid] and tile_properties[tile_gid].collectible then
                                     self.collectible_spawns[string.format("%d;%d", chunk.x + x, chunk.y + y)] = {
                                         tile_x = chunk.x + x,
                                         tile_y = chunk.y + y,
                                         type = tile_properties[tile_gid].collectible
                                     }
-                                    
+
                                     local grass_density_prop = tile_properties[tile_gid].grass_density
                                     local grass_types_prop = tile_properties[tile_gid].grass_types
 
@@ -171,7 +176,8 @@ function TileMap:loadFromTiled(filename)
                                         end
 
                                         if final_density > 0 then -- Only place grass if density is positive
-                                            self.grass_manager:place_tile({ x = chunk.x + x, y = chunk.y + y }, final_density,
+                                            self.grass_manager:place_tile({ x = chunk.x + x, y = chunk.y + y },
+                                                final_density,
                                                 final_grass_types)
                                         end
                                     end
@@ -202,8 +208,10 @@ function TileMap:loadFromTiled(filename)
                                             end
                                         end
 
+                                        local climbable = tile_properties[tile_gid] and tile_properties[tile_gid].climbable
+
                                         local tile = Tile.new(tile_x * self.tile_size, tile_y * self.tile_size,
-                                            tileset_image, tileset.image, collides, quad, leafs, final_density) -- Pass final_density here
+                                            tileset_image, tileset.image, collides, quad, leafs, final_density, climbable) -- Pass final_density here
                                         table.insert(self.tiles, tile)
                                         self.tile_grid[string.format("%d;%d", tile_x, tile_y)] = tile
 

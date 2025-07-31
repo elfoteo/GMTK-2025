@@ -7,6 +7,7 @@
 ---@field leafs boolean
 ---@field grass number
 ---@field quad love.Quad
+---@field climbable boolean
 local Tile = {}
 Tile.__index = Tile
 
@@ -20,7 +21,7 @@ Tile.__index = Tile
 ---@param leafs boolean Whether the tile emits leafs.
 ---@param grass number The number of grass blades to spawn.
 ---@return Tile
-function Tile.new(x, y, image, image_path, collides, quad, leafs, grass)
+function Tile.new(x, y, image, image_path, collides, quad, leafs, grass, climbable)
     local tile = setmetatable({}, Tile)
     tile.x = x
     tile.y = y
@@ -30,6 +31,7 @@ function Tile.new(x, y, image, image_path, collides, quad, leafs, grass)
     tile.quad = quad
     tile.leafs = leafs or false
     tile.grass = grass or 0
+    tile.climbable = climbable or false
     return tile
 end
 
