@@ -129,50 +129,54 @@ function Player:update(dt, level, particle_system)
 
     -- Compute tentative positions
     local oldX, oldY = self.x, self.y
-    local nextX      = self.x + dx * self.speed * dt
-    local nextY      = self.y + self.vy * dt
     local halfW      = self.hitboxW / 2
     local halfH      = self.hitboxH / 2
 
-    -- Horizontal collision
-    if self.animation.current_state ~= "jump_end" then
-        if dx ~= 0 then
-            if level:checkCollision(nextX - halfW, self.y - halfH, self.hitboxW, self.hitboxH) then
-                nextX = self.x
-                if self.onGround then self.animation:set_state("idle") end
-            else
-                if self.onGround then self.animation:set_state("walk") end
-                self.direction = dx > 0 and 1 or -1
-            end
-        else
-            if self.onGround then self.animation:set_state("idle") end
+    -- Apply horizontal movement
+    self.x           = self.x + dx * self.speed * dt
+    if dx ~= 0 then
+        if level:checkCollision(self.x - halfW, self.y - halfH, self.hitboxW, self.hitboxH) then
+            self.x = oldX -- Reset on collision
         end
     end
 
-    -- Vertical collision
+    -- Apply vertical movement
+    self.y = self.y + self.vy * dt
     local wasOnGround = self.onGround
     if self.vy ~= 0 then
-        if level:checkCollision(self.x - halfW, nextY - halfH, self.hitboxW, self.hitboxH) then
+        if level:checkCollision(self.x - halfW, self.y - halfH, self.hitboxW, self.hitboxH) then
             if self.vy > 0 then
                 self.onGround = true
                 if not wasOnGround then
                     self.animation:set_state("jump_end")
                 end
             end
+            self.y = oldY -- Reset on collision
             self.vy = 0
-            nextY = self.y
         else
             self.onGround = false
         end
     end
 
+    -- Animation state & facing
+    if dx ~= 0 then
+        self.direction = dx > 0 and 1 or -1
+    end
+    if self.animation.current_state ~= "jump_end" then
+        if self.onGround then
+            if dx == 0 then
+                self.animation:set_state("idle")
+            else
+                self.animation:set_state("walk")
+            end
+        end
+    end
+
     -- Apply final position and compute actual velocities
-    self.x  = nextX
-    self.y  = nextY
     self.vx = (self.x - oldX) / dt
     self.vy = (self.y - oldY) / dt
 
-    self.scene.grassManager:apply_force({ x = self.x, y = self.y }, 16, 22)
+    self.scene.grassManager:apply_force({ x = self.x, y = self.y }, 8, 16)
 end
 
 function Player:updateProjectiles(dt, particleSystem, tilemap, enemies, world_min_x, world_max_x, world_min_y,
