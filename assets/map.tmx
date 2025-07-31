@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="16" tileheight="16" infinite="1" nextlayerid="2" nextobjectid="1">
+ <editorsettings>
+  <export target="map.lua" format="lua"/>
+ </editorsettings>
+ <tileset firstgid="1" name="tilemap" tilewidth="16" tileheight="16" tilecount="64" columns="8">
+  <image source="tiles/tilemap.png" width="128" height="128"/>
+  <tile id="0">
+   <properties>
+    <property name="collision" type="bool" value="false"/>
+    <property name="grass_density" type="int" value="5"/>
+    <property name="grass_types" value="1,2,3,4"/>
+   </properties>
+  </tile>
+  <tile id="1">
+   <properties>
+    <property name="collision" type="bool" value="false"/>
+    <property name="grass_density" type="int" value="4"/>
+    <property name="grass_types" value="1,2,3,4"/>
+   </properties>
+  </tile>
+  <tile id="2">
+   <properties>
+    <property name="collision" type="bool" value="false"/>
+    <property name="grass_density" type="int" value="5"/>
+    <property name="grass_types" value="2,6"/>
+   </properties>
+  </tile>
+  <tile id="4">
+   <properties>
+    <property name="collision" type="bool" value="false"/>
+    <property name="playerSpawn" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="5">
+   <properties>
+    <property name="collision" type="bool" value="false"/>
+    <property name="enemySpawnpoint" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="6">
+   <properties>
+    <property name="collision" type="bool" value="false"/>
+    <property name="leafs" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="7">
+   <properties>
+    <property name="collectible" value="tti-viper"/>
+    <property name="collision" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <wangsets>
+   <wangset name="Dirt" type="corner" tile="17">
+    <wangcolor name="" color="#ff0000" tile="-1" probability="1"/>
+    <wangtile tileid="11" wangid="0,0,0,1,0,0,0,0"/>
+    <wangtile tileid="12" wangid="0,0,0,1,0,1,0,0"/>
+    <wangtile tileid="13" wangid="0,0,0,0,0,1,0,0"/>
+    <wangtile tileid="16" wangid="0,1,0,1,0,0,0,0"/>
+    <wangtile tileid="17" wangid="0,1,0,1,0,1,0,1"/>
+    <wangtile tileid="18" wangid="0,0,0,0,0,1,0,1"/>
+    <wangtile tileid="19" wangid="0,1,0,1,0,1,0,0"/>
+    <wangtile tileid="20" wangid="0,0,0,1,0,1,0,1"/>
+    <wangtile tileid="24" wangid="0,1,0,0,0,0,0,0"/>
+    <wangtile tileid="25" wangid="0,1,0,0,0,0,0,1"/>
+    <wangtile tileid="26" wangid="0,0,0,0,0,0,0,1"/>
+    <wangtile tileid="27" wangid="0,1,0,1,0,0,0,1"/>
+    <wangtile tileid="28" wangid="0,1,0,0,0,1,0,1"/>
+   </wangset>
+   <wangset name="Grass" type="corner" tile="-1">
+    <wangcolor name="" color="#ff0000" tile="-1" probability="1"/>
+    <wangtile tileid="8" wangid="0,0,0,1,0,0,0,0"/>
+    <wangtile tileid="9" wangid="0,0,0,1,0,1,0,0"/>
+    <wangtile tileid="10" wangid="0,0,0,0,0,1,0,0"/>
+    <wangtile tileid="11" wangid="0,0,0,1,0,0,0,0"/>
+    <wangtile tileid="12" wangid="0,0,0,1,0,1,0,0"/>
+    <wangtile tileid="13" wangid="0,0,0,0,0,1,0,0"/>
+    <wangtile tileid="16" wangid="0,1,0,1,0,0,0,0"/>
+    <wangtile tileid="17" wangid="0,1,0,1,0,1,0,1"/>
+    <wangtile tileid="18" wangid="0,0,0,0,0,1,0,1"/>
+    <wangtile tileid="19" wangid="0,1,0,1,0,1,0,0"/>
+    <wangtile tileid="20" wangid="0,0,0,1,0,1,0,1"/>
+    <wangtile tileid="24" wangid="0,1,0,0,0,0,0,0"/>
+    <wangtile tileid="25" wangid="0,1,0,0,0,0,0,1"/>
+    <wangtile tileid="26" wangid="0,0,0,0,0,0,0,1"/>
+    <wangtile tileid="27" wangid="0,1,0,1,0,0,0,1"/>
+    <wangtile tileid="28" wangid="0,1,0,0,0,1,0,1"/>
+   </wangset>
+  </wangsets>
+ </tileset>
+ <layer id="1" name="Tile Layer 1" width="30" height="20">
+  <data encoding="csv">
+   <chunk x="0" y="-16" width="16" height="16">
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,6,0,0,1,2,0,0,0,0,0,0,
+0,0,0,0,9,11,0,0,9,11,0,0,0,0,0,0,
+0,0,0,0,25,27,0,0,0,0,0,0,4,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,8,0,2,7,1,2,0,4,0,
+0,0,5,0,0,2,1,3,3,9,15,10,11,0,0,0,
+2,1,2,1,2,9,10,10,10,20,18,18,19,0,0,0
+</chunk>
+   <chunk x="16" y="-16" width="16" height="16">
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,
+0,0,0,0,0,0,0,0,0,0,0,0,2,9,10,10,
+0,0,0,0,0,0,0,0,0,0,0,2,9,20,18,18,
+0,2,2,2,2,2,2,2,2,2,6,9,20,18,18,18,
+0,9,10,10,10,10,10,10,10,10,10,20,18,18,18,18,
+0,17,18,18,18,18,18,18,18,18,18,18,18,18,18,29
+</chunk>
+   <chunk x="32" y="-16" width="16" height="16">
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+2,2,2,0,0,0,0,0,0,0,0,0,0,0,0,0,
+10,10,11,0,0,0,0,0,0,0,0,0,0,0,0,0,
+18,18,21,14,0,0,0,0,0,0,0,0,0,0,0,0,
+18,18,18,19,0,0,0,0,0,0,0,0,0,0,0,0,
+18,29,26,27,0,0,0,0,0,0,0,0,0,0,0,0,
+26,27,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+</chunk>
+   <chunk x="0" y="0" width="16" height="16">
+9,10,10,10,10,20,29,26,26,26,26,26,27,0,0,0,
+17,18,18,18,29,26,27,0,0,0,0,0,0,0,0,12,
+17,18,18,18,19,0,0,0,0,0,0,0,0,12,13,20,
+25,26,26,28,21,13,13,13,13,13,13,13,13,20,18,18,
+0,0,0,25,26,26,26,26,26,26,26,26,26,26,26,26,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+</chunk>
+   <chunk x="16" y="0" width="16" height="16">
+12,20,29,28,18,18,18,18,18,18,18,18,18,18,29,27,
+29,26,27,17,18,18,18,18,18,18,18,29,26,26,27,0,
+21,13,13,20,18,18,18,18,18,18,29,27,0,0,0,0,
+18,18,18,18,18,18,18,18,29,26,27,0,0,0,0,0,
+26,26,26,26,26,26,26,26,27,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+</chunk>
+  </data>
+ </layer>
+</map>
