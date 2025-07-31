@@ -2,12 +2,14 @@ local SceneManager   = require("engine.scene_manager")
 local Scene          = require("engine.scene")
 local Player         = require("game.player")
 local Enemy          = require("game.enemy")
+local SandWraith     = require("game.enemies.sandwraith")
 local ParticleSystem = require("engine.particles.particle_system")
 local Crosshair      = require("engine.ui.crosshair")
 local Background     = require("game.background")
 local TileMap        = require("engine.tilemap")
 local CustomFont     = require("engine.custom_font")
 local Collectible    = require("game.collectible")
+local NoteUI         = require("game.note_ui")
 
 
 local EnemyDeathParticle = require("engine.particles.enemy_death_particle")
@@ -20,6 +22,7 @@ local CANVAS_W, CANVAS_H = 384, 216
 ---@field crosshair Crosshair
 ---@field customFont CustomFont
 ---@field customFont8px CustomFont
+---@field customFont12px CustomFont
 ---@field tilemap TileMap
 ---@field player Player
 ---@field enemies table<number, {enemy: Enemy, respawn_timer: number|nil}>
@@ -53,6 +56,7 @@ function MainScene.new()
     self.crosshair             = nil
     self.customFont            = nil
     self.customFont8px         = nil
+    self.customFont12px        = nil
     self.player                = nil
     self.enemies               = {}
     self.background            = nil
@@ -69,6 +73,9 @@ function MainScene.new()
     self.frame_times           = {}
     self.frame_time_index      = 1
     self.avg_fps               = 0
+    self.note_ui               = nil
+    self.game_frozen           = false
+    self.spawned_enemies       = {}
 
     return self
 end
@@ -97,6 +104,10 @@ function MainScene:load()
         "assets/font/font8x8_basic_8.fnt",
         "assets/font/font8x8_basic_8.png"
     )
+    self.customFont12px = CustomFont.new(
+        "assets/font/font8x8_basic_12.fnt",
+        "assets/font/font8x8_basic_12.png"
+    )
 
     math.randomseed(os.time())
 
@@ -110,11 +121,17 @@ function MainScene:load()
     -- initialize game systems & entities
     self.spawn_x, self.spawn_y = self.tilemap:getPlayerSpawnAbsolute()
     self.player = Player.new(self, self.spawn_x, self.spawn_y, 80)
-    -- for i, spawn_point in ipairs(self.tilemap.enemy_spawns) do
-    --     local enemy_x = spawn_point.tile_x * self.tilemap.tile_size + self.tilemap.tile_size / 2
-    --     local enemy_y = spawn_point.tile_y * self.tilemap.tile_size + self.tilemap.tile_size / 2
-    --     self.enemies[i] = { enemy = Enemy.new(self, enemy_x, enemy_y, 109, 16), respawn_timer = nil }
-    -- end
+    for i, spawn_point in ipairs(self.tilemap.enemy_spawns) do
+        local spawn_key = string.format("%d;%d", spawn_point.tile_x, spawn_point.tile_y)
+        if not self.spawned_enemies[spawn_key] then
+            local enemy_x = spawn_point.tile_x * self.tilemap.tile_size + self.tilemap.tile_size / 2
+            local enemy_y = spawn_point.tile_y * self.tilemap.tile_size + self.tilemap.tile_size / 2
+            if spawn_point.type == "sandwraith" then
+                table.insert(self.enemies, { enemy = SandWraith.new(self, enemy_x, enemy_y - 8, 20), respawn_timer = nil })
+                self.spawned_enemies[spawn_key] = true
+            end
+        end
+    end
     for key, spawn_point in pairs(self.tilemap.collectible_spawns) do
         local collectible_x = spawn_point.tile_x * self.tilemap.tile_size + self.tilemap.tile_size / 2
         local collectible_y = spawn_point.tile_y * self.tilemap.tile_size + self.tilemap.tile_size / 2
@@ -128,6 +145,15 @@ function MainScene:load()
     self.score = 0
 
     self.camera:teleport(self.player.x, self.player.y)
+
+    self.note_ui = NoteUI.new(
+        (CANVAS_W - 300) / 2,
+        (CANVAS_H - 160) / 2,
+        300,
+        160,
+        "It ticks again. I’ve lost count how many times. If you’re reading this, it means I’ve failed… or maybe you are me.",
+        self.customFont8px
+    )
 end
 
 ---Handles the result of a bullet collision.
@@ -169,6 +195,10 @@ local startFading = false;
 ---Update all scene elements.
 ---@param dt number
 function MainScene:update(dt)
+    if self.game_frozen then
+        return
+    end
+
     Scene.update(self, dt)
 
     -- background
@@ -203,18 +233,12 @@ function MainScene:update(dt)
     -- player & enemy logic
     self.player:update(dt, self.tilemap, self.particleSystem)
 
-    for i, enemy_data in ipairs(self.enemies) do
+    for i = #self.enemies, 1, -1 do
+        local enemy_data = self.enemies[i]
         if enemy_data.enemy then
             enemy_data.enemy:update(dt, self.player)
         else
-            enemy_data.respawn_timer = enemy_data.respawn_timer - dt
-            if enemy_data.respawn_timer <= 0 then
-                local spawn_point = self.tilemap.enemy_spawns[i]
-                local enemy_x = spawn_point.tile_x * self.tilemap.tile_size + self.tilemap.tile_size / 2
-                local enemy_y = spawn_point.tile_y * self.tilemap.tile_size + self.tilemap.tile_size / 2
-                enemy_data.enemy = Enemy.new(self, enemy_x, enemy_y, 59, 16)
-                enemy_data.respawn_timer = nil
-            end
+            table.remove(self.enemies, i)
         end
     end
 
@@ -322,6 +346,8 @@ function MainScene:draw()
     self.customFont8px:print("Score: " .. self.score, 4, 4, { 1, 1, 0, 1 })
     self.customFont8px:print("FPS: " .. math.floor(self.avg_fps), 4, 14, { 1, 1, 0, 1 })
 
+    self.note_ui:draw()
+
     local mx, my = love.mouse.getPosition()
     local cx, cy = self:toCanvas(mx, my)
     self.crosshair:draw(math.floor(cx) + 0.5, math.floor(cy) + 0.5)
@@ -334,6 +360,14 @@ end
 
 ---Handle key presses.
 function MainScene:keypressed(key)
+    if self.note_ui.active then
+        if key == "escape" or key == "e" or key == "q" then
+            self.note_ui:hide()
+            self.game_frozen = false
+        end
+        return
+    end
+
     if key == "f11" then
         love.window.setFullscreen(
             not love.window.getFullscreen(),
@@ -345,7 +379,8 @@ function MainScene:keypressed(key)
         for k, collectible in pairs(self.collectibles) do
             if collectible:checkPickupRange() then
                 self.collectibles[k] = nil
-                -- Do something with the note, like add it to an inventory
+                self.note_ui:show()
+                self.game_frozen = true
                 break -- only pick up one at a time
             end
         end

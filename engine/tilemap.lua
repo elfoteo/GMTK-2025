@@ -108,8 +108,8 @@ function TileMap:loadFromTiled(filename)
                         spawn_point_gid = gid
                     end
                 end
-                if tile_data.properties and tile_data.properties.enemySpawnpoint ~= nil then
-                    tile_properties[gid].enemySpawnpoint = tile_data.properties.enemySpawnpoint
+                if tile_data.properties and tile_data.properties.enemy ~= nil then
+                    tile_properties[gid].enemy = tile_data.properties.enemy
                 end
                 if tile_data.properties and tile_data.properties.collectible ~= nil then
                     tile_properties[gid].collectible = tile_data.properties.collectible
@@ -143,8 +143,8 @@ function TileMap:loadFromTiled(filename)
                             if tile_gid ~= 0 then
                                 if tile_properties[tile_gid] and tile_properties[tile_gid].playerSpawn == true then
                                     self.player_spawn = { tile_x = chunk.x + x, tile_y = chunk.y + y }
-                                elseif tile_properties[tile_gid] and tile_properties[tile_gid].enemySpawnpoint == true then
-                                    table.insert(self.enemy_spawns, { tile_x = chunk.x + x, tile_y = chunk.y + y })
+                                elseif tile_properties[tile_gid] and tile_properties[tile_gid].enemy then
+                                    table.insert(self.enemy_spawns, { tile_x = chunk.x + x, tile_y = chunk.y + y, type = tile_properties[tile_gid].enemy })
                                 elseif tile_properties[tile_gid] and tile_properties[tile_gid].collectible then
                                     self.collectible_spawns[string.format("%d;%d", chunk.x + x, chunk.y + y)] = {
                                         tile_x = chunk.x + x,

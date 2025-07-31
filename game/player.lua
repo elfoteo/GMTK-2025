@@ -3,6 +3,7 @@
 local Living              = require("game.living")
 local Animated            = require("engine.animated")
 local ClockHandProjectile = require("game.projectiles.clock-hand_projectile")
+local SparkParticle       = require("engine.particles.spark_particle")
 
 ---@class Player : Living
 ---@field x            number        The x-coordinate of the player.
@@ -97,6 +98,17 @@ function Player.new(scene, x, y, speed)
             delay = 0.08,
             loops = false,
             on_complete = function() p.animation:set_state("idle") end
+        },
+        attack = {
+            images = {
+                love.graphics.newImage("assets/entities/player-attack1.png"),
+                love.graphics.newImage("assets/entities/player-attack2.png"),
+                love.graphics.newImage("assets/entities/player-attack3.png"),
+                love.graphics.newImage("assets/entities/player-attack4.png"),
+            },
+            delay = 0.05,
+            loops = false,
+            on_complete = function() p.animation:set_state("idle") end
         }
     })
     p.animation:set_state("idle")
@@ -147,7 +159,7 @@ function Player:update(dt, level, particle_system)
         if level:checkCollision(self.x - halfW, self.y - halfH, self.hitboxW, self.hitboxH) then
             if self.vy > 0 then
                 self.onGround = true
-                if not wasOnGround then
+                if not wasOnGround and self.animation.current_state ~= "jump_end" then
                     self.animation:set_state("jump_end")
                 end
             end
@@ -162,7 +174,7 @@ function Player:update(dt, level, particle_system)
     if dx ~= 0 then
         self.direction = dx > 0 and 1 or -1
     end
-    if self.animation.current_state ~= "jump_end" then
+    if self.animation.current_state ~= "jump_end" and self.animation.current_state ~= "attack" then
         if self.onGround then
             if dx == 0 then
                 self.animation:set_state("idle")
@@ -232,10 +244,23 @@ end
 
 function Player:mousepressed(x, y, button)
     if button == 1 then -- Left mouse button
+        self.animation:set_state("attack")
         local angle = math.atan2(y - 216 / 2, x - 384 / 2)
-        print(angle, y, x)
         local projectile = ClockHandProjectile.new(self.x, self.y, 400, angle)
         table.insert(self.projectiles, projectile)
+
+        self.scene.particleSystem:emitCone(
+            self.x,
+            self.y,
+            angle,
+            0.8,
+            15,
+            { 50, 150 },
+            { 0.1, 0.3 },
+            { 1, 1, 1, 1 },
+            SparkParticle,
+            0.6
+        )
     end
 end
 

@@ -84,8 +84,8 @@ function ProjectileBase:update(dt, particleSystem, tilemap, enemies, world_min_x
         if enemy_obj then
             local bl, br = self.x - self.width / 2, self.x + self.width / 2
             local bt, bb = self.y - self.height / 2, self.y + self.height / 2
-            local el, er = enemy_obj.x - enemy_obj.size / 2, enemy_obj.x + enemy_obj.size / 2
-            local et, eb = enemy_obj.y - enemy_obj.size / 2, enemy_obj.y + enemy_obj.size / 2
+            local el, er = enemy_obj.x - enemy_obj.hitboxW / 2, enemy_obj.x + enemy_obj.hitboxW / 2
+            local et, eb = enemy_obj.y - enemy_obj.hitboxH / 2, enemy_obj.y + enemy_obj.hitboxH / 2
 
             if br > el and bl < er and bb > et and bt < eb then
                 return { type = "enemy", enemy = enemy_obj, enemy_data = enemy_data }
