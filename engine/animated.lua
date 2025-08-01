@@ -2,7 +2,10 @@
 -- This class manages multiple animation states, each with its own set of frames and delay.
 --
 ---@class AnimationState
----@field images love.Image[] A list of images (frames) for this state.
+---@field images? love.Image[] A list of images (frames) for this state.
+---@field path_pattern? string A pattern for the image paths.
+---@field frames? number The number of frames in the animation.
+---@field reversed_pattern? boolean Whether to load the frames in reverse order.
 ---@field delay number The delay in seconds between each frame.
 ---@field loops? boolean Whether the animation should loop. Defaults to true.
 ---@field on_complete? function An optional function to call when a non-looping animation finishes.
@@ -36,10 +39,16 @@ function Animated:new(states)
     setmetatable(animation, Animated)
 
     for state_name, state_data in pairs(states) do
+        state_data.images = state_data.images or {}
         if state_data.path_pattern and state_data.frames then
-            state_data.images = {}
-            for i = 1, state_data.frames do
-                table.insert(state_data.images, love.graphics.newImage(string.format(state_data.path_pattern, i)))
+            if state_data.reversed_pattern then
+                for i = state_data.frames, 1, -1 do
+                    table.insert(state_data.images, love.graphics.newImage(string.format(state_data.path_pattern, i)))
+                end
+            else
+                for i = 1, state_data.frames do
+                    table.insert(state_data.images, love.graphics.newImage(string.format(state_data.path_pattern, i)))
+                end
             end
         end
     end

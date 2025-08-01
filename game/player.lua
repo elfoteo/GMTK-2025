@@ -55,16 +55,19 @@ function Player.new(scene, x, y, speed)
     -- Animation setup
     p.animation   = Animated:new({
         idle = {
+            images = {},
             path_pattern = "assets/entities/player-idle%d.png",
-            frames = 4,
-            delay  = 0.4,
+            frames       = 4,
+            delay        = 0.4,
         },
         walk = {
+            images = {},
             path_pattern = "assets/entities/player-walk%d.png",
-            frames = 4,
-            delay  = 0.1,
+            frames       = 4,
+            delay        = 0.1,
         },
         jump_start = {
+            images = {},
             path_pattern = "assets/entities/player-jump-start%d.png",
             frames = 2,
             delay = 0.2,
@@ -72,11 +75,13 @@ function Player.new(scene, x, y, speed)
             on_complete = function() p.animation:set_state("jump_fall") end
         },
         jump_fall = {
+            images = {},
             path_pattern = "assets/entities/player-jump-start%d.png",
             frames = 2,
             delay = 0.2,
         },
         jump_end = {
+            images = {},
             path_pattern = "assets/entities/player-jump-end%d.png",
             frames = 5,
             delay = 0.08,
@@ -84,6 +89,7 @@ function Player.new(scene, x, y, speed)
             on_complete = function() p.animation:set_state("idle") end
         },
         attack = {
+            images = {},
             path_pattern = "assets/entities/player-attack%d.png",
             frames = 4,
             delay = 0.05,
@@ -97,55 +103,40 @@ function Player.new(scene, x, y, speed)
             delay = 0.1,
         },
         climb = {
+            images = {},
             path_pattern = "assets/entities/player-walk%d.png",
             frames = 4,
             delay = 0.1,
         },
         turn_to_climb = {
+            images = {},
             path_pattern = "assets/entities/player-turning%d.png",
             frames = 14,
             delay = 0.02,
             loops = false,
-            on_complete = function() p.animation:set_state("climbing") end
+            on_complete = function() p.animation:set_state("climb_idle") end
         },
         climbing = {
+            images = {},
             path_pattern = "assets/entities/player-climbing%d.png",
             frames = 8,
             delay = 0.1,
         },
         descending = {
-            images = {
-                love.graphics.newImage("assets/entities/player-climbing8.png"),
-                love.graphics.newImage("assets/entities/player-climbing7.png"),
-                love.graphics.newImage("assets/entities/player-climbing6.png"),
-                love.graphics.newImage("assets/entities/player-climbing5.png"),
-                love.graphics.newImage("assets/entities/player-climbing4.png"),
-                love.graphics.newImage("assets/entities/player-climbing3.png"),
-                love.graphics.newImage("assets/entities/player-climbing2.png"),
-                love.graphics.newImage("assets/entities/player-climbing1.png"),
-            },
+            images = {},
+            path_pattern = "assets/entities/player-climbing%d.png",
+            frames = 8,
             delay = 0.1,
+            reversed_pattern = true,
         },
         turn_from_climb = {
-            images = {
-                love.graphics.newImage("assets/entities/player-turning14.png"),
-                love.graphics.newImage("assets/entities/player-turning13.png"),
-                love.graphics.newImage("assets/entities/player-turning12.png"),
-                love.graphics.newImage("assets/entities/player-turning11.png"),
-                love.graphics.newImage("assets/entities/player-turning10.png"),
-                love.graphics.newImage("assets/entities/player-turning9.png"),
-                love.graphics.newImage("assets/entities/player-turning8.png"),
-                love.graphics.newImage("assets/entities/player-turning7.png"),
-                love.graphics.newImage("assets/entities/player-turning6.png"),
-                love.graphics.newImage("assets/entities/player-turning5.png"),
-                love.graphics.newImage("assets/entities/player-turning4.png"),
-                love.graphics.newImage("assets/entities/player-turning3.png"),
-                love.graphics.newImage("assets/entities/player-turning2.png"),
-                love.graphics.newImage("assets/entities/player-turning1.png"),
-            },
+            images = {},
+            path_pattern = "assets/entities/player-turning%d.png",
+            frames = 14,
             delay = 0.02,
             loops = false,
-            on_complete = function() p.animation:set_state("idle") end
+            on_complete = function() p.animation:set_state("idle") end,
+            reversed_pattern = true,
         }
     })
     p.animation:set_state("idle")
@@ -173,12 +164,18 @@ function Player:update(dt, level, particle_system)
     self.animation:update(dt)
 
     -- Climbing logic
-    local onClimbable = level:getTileAtPixel(self.x, self.y) and level:getTileAtPixel(self.x, self.y).climbable or
-        level:getTileAtPixel(self.x, self.y + self.hitboxH * 0.7) and
-        level:getTileAtPixel(self.x, self.y + self.hitboxH * 0.7).climbable
+    local wasClimbing = self.isClimbing
+    local tile_top = level:getTileAtPixel(self.x, self.y)
+    local tile_bottom = level:getTileAtPixel(self.x, self.y + self.hitboxH * 0.7)
+    local onClimbable = (tile_top and tile_top.climbable) or (tile_bottom and tile_bottom.climbable)
 
     if onClimbable and not self.isClimbing and dy ~= 0 then
         self.isClimbing = true
+        local snap_tile = (tile_bottom and tile_bottom.climbable and tile_bottom) or
+            (tile_top and tile_top.climbable and tile_top)
+        if snap_tile then
+            self.x = snap_tile.x + level.tile_size / 2
+        end
     elseif self.isClimbing and not onClimbable then
         self.isClimbing = false
     end
@@ -188,10 +185,20 @@ function Player:update(dt, level, particle_system)
         self.vy = dy * self.speed
         self.onGround = false
         self.hitboxW = 12
+
+        local tile_below = level:getTileAtPixel(self.x, self.y + self.hitboxH / 2 + 1)
+        if (not tile_below or not tile_below.climbable) and dx ~= 0 then
+            self.isClimbing = false
+        end
     else
         self.vy = self.vy + GRAVITY * dt
-        self.hitboxW = 16
+        if tile_bottom and tile_bottom.climbable then
+            self.hitboxW = 17
+        else
+            self.hitboxW = 16
+        end
     end
+
 
     if self.onGround and jump_pressed and not self.isClimbing then
         self.vy = JUMP_FORCE
@@ -202,10 +209,12 @@ function Player:update(dt, level, particle_system)
     local halfW = self.hitboxW / 2
     local halfH = self.hitboxH / 2
 
-    self.x = self.x + dx * self.speed * dt
-    if dx ~= 0 then
-        if level:checkCollision(self.x - halfW, self.y - halfH, self.hitboxW, self.hitboxH) then
-            self.x = oldX
+    if not self.isClimbing then
+        self.x = self.x + dx * self.speed * dt
+        if dx ~= 0 then
+            if level:checkCollision(self.x - halfW, self.y - halfH, self.hitboxW, self.hitboxH) then
+                self.x = oldX
+            end
         end
     end
 
@@ -234,13 +243,17 @@ function Player:update(dt, level, particle_system)
     elseif current_anim == "turn_from_climb" and not self.animation.is_finished then
         next_anim = "turn_from_climb"
     elseif self.isClimbing then
-        if dy < 0 then
+        if not wasClimbing then
+            next_anim = "turn_to_climb"
+        elseif dy < 0 then
             next_anim = "climbing"
         elseif dy > 0 then
             next_anim = "descending"
         else
             next_anim = "climb_idle"
         end
+    elseif wasClimbing and not self.isClimbing then
+        next_anim = "turn_from_climb"
     elseif not self.onGround then
         if self.vy < 0 then
             next_anim = "jump_start"
@@ -261,7 +274,7 @@ function Player:update(dt, level, particle_system)
         self.animation:set_state(next_anim)
     end
 
-    if dx ~= 0 then
+    if dx ~= 0 and not self.isClimbing then
         self.direction = dx > 0 and 1 or -1
     end
 
