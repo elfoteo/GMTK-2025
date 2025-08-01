@@ -8,6 +8,7 @@
 ---@field grass number
 ---@field quad love.Quad
 ---@field climbable boolean
+---@field platform boolean
 local Tile = {}
 Tile.__index = Tile
 
@@ -20,8 +21,9 @@ Tile.__index = Tile
 ---@param quad love.Quad An optional quad to use for drawing.
 ---@param leafs boolean Whether the tile emits leafs.
 ---@param grass number The number of grass blades to spawn.
+---@param platform boolean If the tile is a platform that you can drop trough.
 ---@return Tile
-function Tile.new(x, y, image, image_path, collides, quad, leafs, grass, climbable)
+function Tile.new(x, y, image, image_path, collides, quad, leafs, grass, climbable, platform)
     local tile = setmetatable({}, Tile)
     tile.x = x
     tile.y = y
@@ -32,6 +34,7 @@ function Tile.new(x, y, image, image_path, collides, quad, leafs, grass, climbab
     tile.leafs = leafs or false
     tile.grass = grass or 0
     tile.climbable = climbable or false
+    tile.platform = platform or false
     return tile
 end
 

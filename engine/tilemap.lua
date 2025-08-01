@@ -117,6 +117,9 @@ function TileMap:loadFromTiled(filename)
                 if tile_data.properties and tile_data.properties.climbable ~= nil then
                     tile_properties[gid].climbable = tile_data.properties.climbable
                 end
+                if tile_data.properties and tile_data.properties.platform ~= nil then
+                    tile_properties[gid].platform = tile_data.properties.platform
+                end
             end
         end
 
@@ -148,8 +151,12 @@ function TileMap:loadFromTiled(filename)
                                     self.player_spawn = { tile_x = chunk.x + x, tile_y = chunk.y + y }
                                 elseif tile_properties[tile_gid] and tile_properties[tile_gid].enemy then
                                     table.insert(self.enemy_spawns,
-                                        { tile_x = chunk.x + x, tile_y = chunk.y + y, type = tile_properties[tile_gid]
-                                        .enemy })
+                                        {
+                                            tile_x = chunk.x + x,
+                                            tile_y = chunk.y + y,
+                                            type = tile_properties[tile_gid]
+                                                .enemy
+                                        })
                                 elseif tile_properties[tile_gid] and tile_properties[tile_gid].collectible then
                                     self.collectible_spawns[string.format("%d;%d", chunk.x + x, chunk.y + y)] = {
                                         tile_x = chunk.x + x,
@@ -208,10 +215,14 @@ function TileMap:loadFromTiled(filename)
                                             end
                                         end
 
-                                        local climbable = tile_properties[tile_gid] and tile_properties[tile_gid].climbable
+                                        local climbable = tile_properties[tile_gid] and
+                                            tile_properties[tile_gid].climbable
+                                        local platform = tile_properties[tile_gid] and
+                                            tile_properties[tile_gid].platform
 
                                         local tile = Tile.new(tile_x * self.tile_size, tile_y * self.tile_size,
-                                            tileset_image, tileset.image, collides, quad, leafs, final_density, climbable) -- Pass final_density here
+                                            tileset_image, tileset.image, collides, quad, leafs, final_density, climbable,
+                                            platform) -- Pass final_density here
                                         table.insert(self.tiles, tile)
                                         self.tile_grid[string.format("%d;%d", tile_x, tile_y)] = tile
 
@@ -309,8 +320,9 @@ end
 ---@param y number The Y position of the object.
 ---@param w number The object's width.
 ---@param h number The object's height.
+---@param ignorePlatforms boolean If the collision check should ignore platforms
 ---@return boolean True if any collidable tile overlaps the box.
-function TileMap:checkCollision(x, y, w, h)
+function TileMap:checkCollision(x, y, w, h, ignorePlatforms)
     local start_tile_x = math.floor(x / self.tile_size)
     local end_tile_x   = math.floor((x + w) / self.tile_size)
     local start_tile_y = math.floor(y / self.tile_size)
@@ -319,8 +331,8 @@ function TileMap:checkCollision(x, y, w, h)
     for ty = start_tile_y, end_tile_y do
         for tx = start_tile_x, end_tile_x do
             local tile = self.tile_grid[string.format("%d;%d", tx, ty)]
-            if tile and tile.collides then
-                -- Simple AABB check between object and tile
+
+            if tile and tile.collides and not (ignorePlatforms and tile.platform) then
                 if x < tile.x + self.tile_size and
                     x + w > tile.x and
                     y < tile.y + self.tile_size and

@@ -7,7 +7,7 @@ local ParticleSystem = require("engine.particles.particle_system")
 local CANVAS_W, CANVAS_H = 384, 216
 
 ---@class MainMenuScene : Scene
----@field customFont8px CustomFont
+---@field customFont16px CustomFont
 ---@field playButton StyledButton
 ---@field creditsButton StyledButton
 ---@field quitButton StyledButton
@@ -20,16 +20,16 @@ function MainMenuScene.new()
     ---@cast self MainMenuScene
     setmetatable(self, MainMenuScene)
 
-    self.customFont8px = CustomFont.new(
-        "assets/font/font8x8_basic_8.fnt",
-        "assets/font/font8x8_basic_8.png"
+    self.customFont16px = CustomFont.new(
+        "assets/font/font8x8_basic_16.fnt",
+        "assets/font/font8x8_basic_16.png"
     )
 
     love.mouse.setVisible(true)
 
     local button_width = 100
     local button_height = 20
-    local button_spacing = 15
+    local button_spacing = 25
     local total_height = (button_height * 3) + (button_spacing * 2)
     local start_y = (CANVAS_H - total_height) / 2
     local start_x = (CANVAS_W - button_width) / 2
@@ -45,7 +45,7 @@ function MainMenuScene.new()
         function()
             SceneManager.gotoScene(require("scenes.main_scene").new())
         end,
-        self.customFont8px,
+        self.customFont16px,
         { 0.6, 0.6, 0.6, 1 },
         self.particleSystem
     )
@@ -59,7 +59,7 @@ function MainMenuScene.new()
         function()
             SceneManager.gotoScene(require("scenes.credits_scene").new())
         end,
-        self.customFont8px,
+        self.customFont16px,
         { 0.6, 0.6, 0.6, 1 },
         self.particleSystem
     )
@@ -74,7 +74,7 @@ function MainMenuScene.new()
             function()
                 love.event.quit()
             end,
-            self.customFont8px,
+            self.customFont16px,
             { 0.6, 0.6, 0.6, 1 },
             self.particleSystem
         )
