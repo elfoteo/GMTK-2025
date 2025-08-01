@@ -1,5 +1,3 @@
--- game/player.lua
-
 local Living              = require("game.living")
 local Animated            = require("engine.animated")
 local ClockHandProjectile = require("game.projectiles.clock-hand_projectile")
@@ -150,8 +148,23 @@ function Player.new(scene, x, y, speed)
                 love.graphics.newImage("assets/entities/player-climbing4.png"),
                 love.graphics.newImage("assets/entities/player-climbing5.png"),
                 love.graphics.newImage("assets/entities/player-climbing6.png"),
+                love.graphics.newImage("assets/entities/player-climbing7.png"),
+                love.graphics.newImage("assets/entities/player-climbing8.png"),
             },
-            delay = 0.24,
+            delay = 0.1,
+        },
+        descending = {
+            images = {
+                love.graphics.newImage("assets/entities/player-climbing8.png"),
+                love.graphics.newImage("assets/entities/player-climbing7.png"),
+                love.graphics.newImage("assets/entities/player-climbing6.png"),
+                love.graphics.newImage("assets/entities/player-climbing5.png"),
+                love.graphics.newImage("assets/entities/player-climbing4.png"),
+                love.graphics.newImage("assets/entities/player-climbing3.png"),
+                love.graphics.newImage("assets/entities/player-climbing2.png"),
+                love.graphics.newImage("assets/entities/player-climbing1.png"),
+            },
+            delay = 0.1,
         },
         turn_from_climb = {
             images = {
@@ -215,8 +228,12 @@ function Player:update(dt, level, particle_system)
         self.onGround = false
         if dy == 0 and self.animation.current_state == "climbing" then
             self.animation:set_state("idle")
-        elseif dy ~= 0 and self.animation.current_state ~= "turn_to_climb" and self.animation.current_state ~= "climbing" then
-            self.animation:set_state("climbing")
+        elseif dy ~= 0 and self.animation.current_state ~= "turn_to_climb" and self.animation.current_state ~= "descending" and self.animation.current_state ~= "climbing" then
+            if dy < 0 then
+                self.animation:set_state("climbing")
+            else
+                self.animation:set_state("descending")
+            end
         end
     else
         -- Apply gravity
