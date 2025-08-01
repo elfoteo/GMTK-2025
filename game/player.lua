@@ -24,6 +24,8 @@ Player.__index            = Player
 
 local GRAVITY             = 450
 local JUMP_FORCE          = -180
+local REWIND_SECONDS      = 4
+local HISTORY_INTERVAL    = 0.1
 
 function Player.new(scene, x, y, speed)
     local p = Living.new(scene, x, y, speed)
@@ -40,6 +42,9 @@ function Player.new(scene, x, y, speed)
     p.secondLastAttackTime = nil
     p.lastDownPressTime    = 0
     p.dropThrough          = false
+    p.history              = {}
+    p.history_timer        = 0
+    p.fall_distance        = 0
 
     p.animation            = Animated:new({
         idle = { images = {}, path_pattern = "assets/entities/player-idle%d.png", frames = 4, delay = 0.4 },
@@ -106,6 +111,24 @@ function Player.new(scene, x, y, speed)
 end
 
 function Player:update(dt, level, particle_system)
+    self.history_timer = self.history_timer + dt
+    if self.history_timer >= HISTORY_INTERVAL then
+        self.history_timer = 0
+        local state = {
+            x = self.x,
+            y = self.y,
+            vx = self.vx,
+            vy = self.vy,
+            health = self.health,
+            timestamp = love.timer.getTime()
+        }
+        table.insert(self.history, state)
+        -- Keep history at a manageable size, assuming 60fps
+        if #self.history > (REWIND_SECONDS / HISTORY_INTERVAL) * 1.5 then
+            table.remove(self.history, 1)
+        end
+    end
+
     local dx = 0
     if love.keyboard.isDown("a", "left") then dx = dx - 1 end
     if love.keyboard.isDown("d", "right") then dx = dx + 1 end
@@ -158,6 +181,11 @@ function Player:update(dt, level, particle_system)
     if not self.isClimbing then
         self.vy = self.vy + GRAVITY * dt
         self.hitboxW = (tile_bottom and tile_bottom.climbable) and 17 or 16
+        if not self.onGround then
+            self.fall_distance = self.fall_distance + self.vy * dt
+        end
+    else
+        self.fall_distance = 0
     end
 
     if self.onGround and jump_pressed and not self.isClimbing then
@@ -185,6 +213,11 @@ function Player:update(dt, level, particle_system)
         if collided then
             if self.vy > 0 then
                 self.onGround = true
+                if self.fall_distance > 5 * level.tile_size then
+                    local damage = math.floor((self.fall_distance - 5 * level.tile_size) / level.tile_size) * 10
+                    self:take_damage(damage)
+                end
+                self.fall_distance = 0
             end
             self.y = oldY
             self.vy = 0
@@ -241,6 +274,34 @@ function Player:update(dt, level, particle_system)
     self.scene.grassManager:apply_force({ x = self.x, y = self.y }, 8, 16)
 end
 
+function Player:rewind()
+    local now = love.timer.getTime()
+    local target_time = now - REWIND_SECONDS
+    local best_state = nil
+
+    for i = #self.history, 1, -1 do
+        local state = self.history[i]
+        if state.timestamp <= target_time then
+            best_state = state
+            break
+        end
+    end
+
+    if best_state then
+        self.x = best_state.x
+        self.y = best_state.y
+        self.vx = best_state.vx
+        self.vy = best_state.vy
+        self.health = best_state.health
+        -- Clear future history
+        for i = #self.history, 1, -1 do
+            if self.history[i].timestamp > best_state.timestamp then
+                table.remove(self.history, i)
+            end
+        end
+    end
+end
+
 function Player:updateProjectiles(dt, particleSystem, tilemap, enemies, world_min_x, world_max_x, world_min_y,
                                   world_max_y)
     for i = #self.projectiles, 1, -1 do
@@ -286,6 +347,8 @@ function Player:keypressed(key)
             end
         end
         self.lastDownPressTime = now
+    elseif key == "r" then
+        self:rewind()
     end
 end
 

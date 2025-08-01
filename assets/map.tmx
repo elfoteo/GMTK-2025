@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="16" tileheight="16" infinite="1" nextlayerid="4" nextobjectid="1">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="30" height="20" tilewidth="16" tileheight="16" infinite="1" nextlayerid="6" nextobjectid="1">
  <editorsettings>
   <export target="map.lua" format="lua"/>
  </editorsettings>
@@ -84,6 +84,11 @@
   <tile id="49">
    <properties>
     <property name="collision" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="50">
+   <properties>
+    <property name="interactable" type="bool" value="true"/>
    </properties>
   </tile>
   <tile id="56">
@@ -174,6 +179,9 @@
 </chunk>
   </data>
  </layer>
+ <imagelayer id="5" name="Image Layer 1" visible="0" offsetx="0" offsety="-130">
+  <image source="misc/concept.png" width="400" height="215"/>
+ </imagelayer>
  <layer id="1" name="Tile Layer 1" width="30" height="20">
   <data encoding="csv">
    <chunk x="0" y="-16" width="16" height="16">
@@ -192,7 +200,7 @@
 0,0,0,0,0,0,0,33,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,33,0,2,0,1,2,0,4,0,
 0,0,5,0,0,2,8,33,2,9,15,10,11,0,0,0,
-2,1,2,1,2,9,10,10,10,20,18,18,19,0,0,0
+2,1,2,1,2,9,10,10,10,20,18,29,27,0,0,0
 </chunk>
    <chunk x="16" y="-16" width="16" height="16">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -231,10 +239,10 @@
 26,27,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </chunk>
    <chunk x="0" y="0" width="16" height="16">
-9,10,10,10,10,20,29,26,26,26,26,26,27,0,0,0,
+9,10,10,10,10,20,29,26,26,26,26,27,0,0,0,0,
 17,18,18,18,29,26,27,0,0,51,0,0,0,0,0,12,
-17,18,18,18,19,0,0,0,0,59,0,0,0,12,13,20,
-25,26,26,28,21,13,13,13,13,13,13,13,13,20,18,18,
+17,18,18,18,19,0,0,0,0,59,0,0,0,0,12,20,
+25,26,26,28,21,13,13,13,13,13,13,13,13,13,20,18,
 0,0,0,25,26,26,26,26,26,26,26,26,26,26,26,26,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,

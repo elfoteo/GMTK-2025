@@ -88,6 +88,9 @@ function MainScene:load()
 
     -- assets
     self.crosshair = Crosshair.new("assets/gui/crosshair.png", 1)
+    self.healthBarImage = love.graphics.newImage("assets/gui/bars.png")
+    self.healthBarMask = love.graphics.newImage("assets/gui/health-bar-mask.png")
+    self.healthBarShader = love.graphics.newShader("engine/shaders/health_bar_tint.glsl")
 
     -- instruction images
     self.howtoMoveImage = love.graphics.newImage("assets/misc/howto-move.png")
@@ -121,7 +124,8 @@ function MainScene:load()
             local enemy_x = spawn_point.tile_x * self.tilemap.tile_size + self.tilemap.tile_size / 2
             local enemy_y = spawn_point.tile_y * self.tilemap.tile_size + self.tilemap.tile_size / 2
             if spawn_point.type == "sandwraith" then
-                table.insert(self.enemies, { enemy = SandWraith.new(self, enemy_x, enemy_y - 8, 20), respawn_timer = nil })
+                table.insert(self.enemies,
+                    { enemy = SandWraith.new(self, enemy_x, enemy_y - 8, 20), respawn_timer = nil })
                 self.spawned_enemies[spawn_key] = true
             end
         end
@@ -145,7 +149,7 @@ function MainScene:load()
         (CANVAS_H - 160) / 2,
         300,
         160,
-        "It ticks again. I’ve lost count how many times. If you’re reading this, it means I’ve failed… or maybe you are me.",
+        "The bells ring for me no more. For you, there is a chance. Try your best, for even if you fail the hands of time will rewind.",
         self.customFont8px
     )
 end
@@ -343,6 +347,13 @@ function MainScene:draw()
     love.graphics.setColor(1, 1, 1)
     self.customFont8px:print("Score: " .. self.score, 4, 4, { 1, 1, 0, 1 })
     self.customFont8px:print("FPS: " .. math.floor(self.avg_fps), 4, 14, { 1, 1, 0, 1 })
+
+    -- Draw health bar
+    love.graphics.draw(self.healthBarImage, 11, 184)
+    love.graphics.setShader(self.healthBarShader)
+    self.healthBarShader:send("health_ratio", self.player.health / 100)
+    love.graphics.draw(self.healthBarMask, 11, 184)
+    love.graphics.setShader()
 
     self.note_ui:draw()
 
