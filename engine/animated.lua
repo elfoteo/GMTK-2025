@@ -16,22 +16,16 @@
 local Animated = {}
 Animated.__index = Animated
 
----Creates a new Animated state machine.
----The `states` parameter should be a table where keys are state names (strings)
----and values are tables containing an `images` array and a `delay` number.
+--- Creates a new Animated state machine.
+--- The `states` parameter can now also accept a `path_pattern` and `frames` to automatically load images.
 ---
----Example:
+--- Example with path_pattern:
 ---
 ---    local anim = Animated:new({
----        idle = {
----            images = { love.graphics.newImage("idle.png") },
----            delay = 0.5
----        },
 ---        walk = {
----            images = { love.graphics.newImage("walk1.png"), love.graphics.newImage("walk2.png") },
+---            path_pattern = "assets/entities/player-walk%d.png",
+---            frames = 4,
 ---            delay = 0.2,
----            loops = false,
----            on_complete = function() print("Walk finished!") end
 ---        }
 ---    })
 ---
@@ -40,6 +34,15 @@ Animated.__index = Animated
 function Animated:new(states)
     local animation = {}
     setmetatable(animation, Animated)
+
+    for state_name, state_data in pairs(states) do
+        if state_data.path_pattern and state_data.frames then
+            state_data.images = {}
+            for i = 1, state_data.frames do
+                table.insert(state_data.images, love.graphics.newImage(string.format(state_data.path_pattern, i)))
+            end
+        end
+    end
 
     animation.states = states
     animation.current_state = nil

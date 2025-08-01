@@ -55,102 +55,62 @@ function Player.new(scene, x, y, speed)
     -- Animation setup
     p.animation   = Animated:new({
         idle = {
-            images = {
-                love.graphics.newImage("assets/entities/player-idle1.png"),
-                love.graphics.newImage("assets/entities/player-idle2.png"),
-                love.graphics.newImage("assets/entities/player-idle3.png"),
-                love.graphics.newImage("assets/entities/player-idle4.png"),
-            },
+            path_pattern = "assets/entities/player-idle%d.png",
+            frames = 4,
             delay  = 0.4,
         },
         walk = {
-            images = {
-                love.graphics.newImage("assets/entities/player-walk1.png"),
-                love.graphics.newImage("assets/entities/player-walk2.png"),
-                love.graphics.newImage("assets/entities/player-walk3.png"),
-                love.graphics.newImage("assets/entities/player-walk4.png"),
-            },
+            path_pattern = "assets/entities/player-walk%d.png",
+            frames = 4,
             delay  = 0.1,
         },
         jump_start = {
-            images = {
-                love.graphics.newImage("assets/entities/player-jump-start1.png"),
-                love.graphics.newImage("assets/entities/player-jump-start2.png"),
-            },
+            path_pattern = "assets/entities/player-jump-start%d.png",
+            frames = 2,
             delay = 0.2,
             loops = false,
             on_complete = function() p.animation:set_state("jump_fall") end
         },
         jump_fall = {
-            images = {
-                love.graphics.newImage("assets/entities/player-jump-start2.png"),
-            },
+            path_pattern = "assets/entities/player-jump-start%d.png",
+            frames = 2,
             delay = 0.2,
         },
         jump_end = {
-            images = {
-                love.graphics.newImage("assets/entities/player-jump-end1.png"),
-                love.graphics.newImage("assets/entities/player-jump-end2.png"),
-                love.graphics.newImage("assets/entities/player-jump-end3.png"),
-                love.graphics.newImage("assets/entities/player-jump-end4.png"),
-                love.graphics.newImage("assets/entities/player-jump-end5.png"),
-            },
+            path_pattern = "assets/entities/player-jump-end%d.png",
+            frames = 5,
             delay = 0.08,
             loops = false,
             on_complete = function() p.animation:set_state("idle") end
         },
         attack = {
-            images = {
-                love.graphics.newImage("assets/entities/player-attack1.png"),
-                love.graphics.newImage("assets/entities/player-attack2.png"),
-                love.graphics.newImage("assets/entities/player-attack3.png"),
-                love.graphics.newImage("assets/entities/player-attack4.png"),
-            },
+            path_pattern = "assets/entities/player-attack%d.png",
+            frames = 4,
             delay = 0.05,
             loops = false,
             on_complete = function() p.animation:set_state("idle") end
         },
-        climb = {
+        climb_idle = {
             images = {
-                love.graphics.newImage("assets/entities/player-walk1.png"),
-                love.graphics.newImage("assets/entities/player-walk2.png"),
-                love.graphics.newImage("assets/entities/player-walk3.png"),
-                love.graphics.newImage("assets/entities/player-walk4.png"),
+                love.graphics.newImage("assets/entities/player-climbing1.png"),
             },
             delay = 0.1,
         },
+        climb = {
+            path_pattern = "assets/entities/player-walk%d.png",
+            frames = 4,
+            delay = 0.1,
+        },
         turn_to_climb = {
-            images = {
-                love.graphics.newImage("assets/entities/player-turning1.png"),
-                love.graphics.newImage("assets/entities/player-turning2.png"),
-                love.graphics.newImage("assets/entities/player-turning3.png"),
-                love.graphics.newImage("assets/entities/player-turning4.png"),
-                love.graphics.newImage("assets/entities/player-turning5.png"),
-                love.graphics.newImage("assets/entities/player-turning6.png"),
-                love.graphics.newImage("assets/entities/player-turning7.png"),
-                love.graphics.newImage("assets/entities/player-turning8.png"),
-                love.graphics.newImage("assets/entities/player-turning9.png"),
-                love.graphics.newImage("assets/entities/player-turning10.png"),
-                love.graphics.newImage("assets/entities/player-turning11.png"),
-                love.graphics.newImage("assets/entities/player-turning12.png"),
-                love.graphics.newImage("assets/entities/player-turning13.png"),
-                love.graphics.newImage("assets/entities/player-turning14.png"),
-            },
+            path_pattern = "assets/entities/player-turning%d.png",
+            frames = 14,
             delay = 0.02,
             loops = false,
             on_complete = function() p.animation:set_state("climbing") end
         },
         climbing = {
-            images = {
-                love.graphics.newImage("assets/entities/player-climbing1.png"),
-                love.graphics.newImage("assets/entities/player-climbing2.png"),
-                love.graphics.newImage("assets/entities/player-climbing3.png"),
-                love.graphics.newImage("assets/entities/player-climbing4.png"),
-                love.graphics.newImage("assets/entities/player-climbing5.png"),
-                love.graphics.newImage("assets/entities/player-climbing6.png"),
-                love.graphics.newImage("assets/entities/player-climbing7.png"),
-                love.graphics.newImage("assets/entities/player-climbing8.png"),
-            },
+            path_pattern = "assets/entities/player-climbing%d.png",
+            frames = 8,
             delay = 0.1,
         },
         descending = {
@@ -204,10 +164,12 @@ function Player:update(dt, level, particle_system)
     if love.keyboard.isDown("d", "right") then dx = dx + 1 end
 
     local dy = 0
-    if love.keyboard.isDown("w", "up", "space") then dy = dy - 1 end
+    if love.keyboard.isDown("w", "up") then dy = dy - 1 end
     if love.keyboard.isDown("s", "down") then dy = dy + 1 end
 
-    -- Animation state & facing
+    local jump_pressed = love.keyboard.isDown("space")
+
+    -- Update animation timer
     self.animation:update(dt)
 
     -- Climbing logic
@@ -215,90 +177,94 @@ function Player:update(dt, level, particle_system)
         level:getTileAtPixel(self.x, self.y + self.hitboxH * 0.7) and
         level:getTileAtPixel(self.x, self.y + self.hitboxH * 0.7).climbable
 
-    if onClimbable and dy ~= 0 and not self.isClimbing then
+    if onClimbable and not self.isClimbing and dy ~= 0 then
         self.isClimbing = true
-        self.animation:set_state("turn_to_climb")
     elseif self.isClimbing and not onClimbable then
         self.isClimbing = false
-        self.animation:set_state("turn_from_climb")
     end
 
+    -- Physics and movement
     if self.isClimbing then
         self.vy = dy * self.speed
         self.onGround = false
-        if dy == 0 and self.animation.current_state == "climbing" then
-            self.animation:set_state("idle")
-        elseif dy ~= 0 and self.animation.current_state ~= "turn_to_climb" and self.animation.current_state ~= "descending" and self.animation.current_state ~= "climbing" then
-            if dy < 0 then
-                self.animation:set_state("climbing")
-            else
-                self.animation:set_state("descending")
-            end
-        end
-    else
-        -- Apply gravity
-        self.vy = self.vy + GRAVITY * dt
-    end
-
-    -- Jump
-    if self.onGround and love.keyboard.isDown("space") and not self.isClimbing then
-        self.vy       = JUMP_FORCE
-        self.onGround = false
-        self.animation:set_state("jump_start")
-    end
-
-    -- Compute tentative positions
-    if self.isClimbing then
         self.hitboxW = 12
     else
+        self.vy = self.vy + GRAVITY * dt
         self.hitboxW = 16
     end
 
-    local oldX, oldY = self.x, self.y
-    local halfW      = self.hitboxW / 2
-    local halfH      = self.hitboxH / 2
+    if self.onGround and jump_pressed and not self.isClimbing then
+        self.vy = JUMP_FORCE
+        self.onGround = false
+    end
 
-    -- Apply horizontal movement
-    self.x           = self.x + dx * self.speed * dt
+    local oldX, oldY = self.x, self.y
+    local halfW = self.hitboxW / 2
+    local halfH = self.hitboxH / 2
+
+    self.x = self.x + dx * self.speed * dt
     if dx ~= 0 then
         if level:checkCollision(self.x - halfW, self.y - halfH, self.hitboxW, self.hitboxH) then
-            self.x = oldX -- Reset on collision
+            self.x = oldX
         end
     end
 
-    -- Apply vertical movement
-    self.y = self.y + self.vy * dt
     local wasOnGround = self.onGround
+    self.y = self.y + self.vy * dt
     if self.vy ~= 0 then
         if level:checkCollision(self.x - halfW, self.y - halfH, self.hitboxW, self.hitboxH) then
             if self.vy > 0 then
                 self.onGround = true
-                if not wasOnGround and self.animation.current_state ~= "jump_end" then
-                    self.animation:set_state("jump_end")
-                end
             end
-            self.y = oldY -- Reset on collision
+            self.y = oldY
             self.vy = 0
         else
             self.onGround = false
         end
     end
 
-    -- Animation state & facing
-    if dx ~= 0 then
-        self.direction = dx > 0 and 1 or -1
-    end
-    if self.animation.current_state ~= "jump_end" and self.animation.current_state ~= "attack" and not self.isClimbing then
-        if self.onGround then
-            if dx == 0 then
-                self.animation:set_state("idle")
-            else
-                self.animation:set_state("walk")
-            end
+    -- Animation state machine
+    local next_anim
+    local current_anim = self.animation.current_state
+
+    if current_anim == "attack" and not self.animation.is_finished then
+        next_anim = "attack"
+    elseif current_anim == "turn_to_climb" and not self.animation.is_finished then
+        next_anim = "turn_to_climb"
+    elseif current_anim == "turn_from_climb" and not self.animation.is_finished then
+        next_anim = "turn_from_climb"
+    elseif self.isClimbing then
+        if dy < 0 then
+            next_anim = "climbing"
+        elseif dy > 0 then
+            next_anim = "descending"
+        else
+            next_anim = "climb_idle"
+        end
+    elseif not self.onGround then
+        if self.vy < 0 then
+            next_anim = "jump_start"
+        else
+            next_anim = "jump_fall"
+        end
+    elseif not wasOnGround and self.onGround then
+        next_anim = "jump_end"
+    else
+        if dx == 0 then
+            next_anim = "idle"
+        else
+            next_anim = "walk"
         end
     end
 
-    -- Apply final position and compute actual velocities
+    if next_anim and next_anim ~= current_anim then
+        self.animation:set_state(next_anim)
+    end
+
+    if dx ~= 0 then
+        self.direction = dx > 0 and 1 or -1
+    end
+
     self.vx = (self.x - oldX) / dt
     self.vy = (self.y - oldY) / dt
 
