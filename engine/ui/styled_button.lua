@@ -86,9 +86,26 @@ function StyledButton:draw()
     love.graphics.print(self.text, tx, ty)
 
     if self.underlineProgress > 0 then
-        love.graphics.setLineWidth(1)
-        local drawW = textW * self.underlineProgress
-        love.graphics.line(tx, ty + textH + 2, tx + drawW, ty + textH + 2)
+        local drawW = math.floor(textW * self.underlineProgress)
+        local y0 = ty + textH + 2
+        local y1 = y0 + 1
+
+        -- collect pixel positions
+        local pts = {}
+
+        -- top row: starts at tx+1, ends at tx+drawW   (one px past)
+        for i = 1, drawW do
+            pts[#pts + 1] = { tx + i, y0 }
+        end
+
+        -- bottom row: starts at tx-1, ends at tx+(drawW-1)  (one px before)
+        for i = 0, drawW - 1 do
+            pts[#pts + 1] = { tx - 1 + i, y1 }
+        end
+
+        -- draw all points in one call
+        love.graphics.setPointSize(1)
+        love.graphics.points(pts)
     end
 end
 

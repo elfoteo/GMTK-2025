@@ -2,7 +2,7 @@ package.path             = package.path ..
     ';./?.lua;./?/init.lua;engine/?.lua;engine/ui/?.lua;engine/particles/?.lua;game/?.lua;scenes/?.lua;game/weapons/?.lua;game/projectiles/?.lua'
 
 local SceneManager       = require("engine.scene_manager")
-local MainScene          = require("scenes.main_scene")
+local MainMenuScene    = require("scenes.main_menu_scene")
 local WINDOW_W, WINDOW_H = 1280, 720
 
 function love.load(arg)
@@ -13,7 +13,7 @@ function love.load(arg)
         fullscreentype = "desktop",
     })
     love.graphics.setDefaultFilter("nearest", "nearest")
-    SceneManager.gotoScene(MainScene.new())
+    SceneManager.gotoScene(MainMenuScene.new())
 end
 
 function love.resize()

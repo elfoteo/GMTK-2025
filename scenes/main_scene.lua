@@ -22,7 +22,6 @@ local CANVAS_W, CANVAS_H = 384, 216
 ---@field crosshair Crosshair
 ---@field customFont CustomFont
 ---@field customFont8px CustomFont
----@field customFont12px CustomFont
 ---@field tilemap TileMap
 ---@field player Player
 ---@field enemies table<number, {enemy: Enemy, respawn_timer: number|nil}>
@@ -56,7 +55,6 @@ function MainScene.new()
     self.crosshair             = nil
     self.customFont            = nil
     self.customFont8px         = nil
-    self.customFont12px        = nil
     self.player                = nil
     self.enemies               = {}
     self.background            = nil
@@ -103,10 +101,6 @@ function MainScene:load()
     self.customFont8px = CustomFont.new(
         "assets/font/font8x8_basic_8.fnt",
         "assets/font/font8x8_basic_8.png"
-    )
-    self.customFont12px = CustomFont.new(
-        "assets/font/font8x8_basic_12.fnt",
-        "assets/font/font8x8_basic_12.png"
     )
 
     math.randomseed(os.time())

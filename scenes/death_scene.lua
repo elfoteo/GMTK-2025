@@ -8,7 +8,7 @@ local CANVAS_W, CANVAS_H = 384, 216
 ---@class DeathScene : Scene
 ---@field customFont24px CustomFont
 ---@field customFont16px CustomFont
----@field customFont12px CustomFont
+---@field customFont8px CustomFont
 ---@field retryButton StyledButton
 ---@field quitButton StyledButton
 ---@field particleSystem ParticleSystem
@@ -30,9 +30,9 @@ function DeathScene.new()
         "assets/font/font8x8_basic_16.fnt",
         "assets/font/font8x8_basic_16.png"
     )
-    self.customFont12px = CustomFont.new(
-        "assets/font/font8x8_basic_12.fnt",
-        "assets/font/font8x8_basic_12.png"
+    self.customFont8px = CustomFont.new(
+        "assets/font/font8x8_basic_8.fnt",
+        "assets/font/font8x8_basic_8.png"
     )
 
     love.mouse.setVisible(true)
@@ -55,7 +55,7 @@ function DeathScene.new()
         function()
             SceneManager.gotoScene(require("scenes.main_scene").new())
         end,
-        self.customFont12px,
+        self.customFont16px,
         { 0.6, 0.6, 0.6, 1 }, -- White
         self.particleSystem
     )
@@ -70,7 +70,7 @@ function DeathScene.new()
             function()
                 love.event.quit()
             end,
-            self.customFont12px,
+            self.customFont16px,
             { 0.6, 0, 0, 1 }, -- Red
             self.particleSystem
         )
@@ -94,6 +94,7 @@ function DeathScene:draw()
     love.graphics.print("You died", (CANVAS_W - text_width) / 2, 30) -- 10 pixels from top
 
     -- Draw buttons
+    love.graphics.setFont(self.customFont16px.font)
     self.retryButton:draw()
     if self.quitButton then
         self.quitButton:draw()
