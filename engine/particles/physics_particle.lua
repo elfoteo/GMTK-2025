@@ -1,9 +1,9 @@
 local ParticleBase = require("engine.particles.particle_base")
-local GRAVITY = 400
 
 ---@class PhysicsParticle : ParticleBase
 ---@field radius number
 ---@field bounciness number
+---@field gravity number
 local PhysicsParticle = setmetatable({}, { __index = ParticleBase })
 PhysicsParticle.__index = PhysicsParticle
 
@@ -21,6 +21,7 @@ function PhysicsParticle.new(x, y, vx, vy, lifetime)
 
     p.radius = 5 -- Default radius
     p.bounciness = 0.7
+    p.gravity = 400
     return p
 end
 
@@ -28,7 +29,7 @@ end
 ---@param dt number The time since the last frame.
 function PhysicsParticle:update(dt, tilemap)
     -- Gravity
-    self.vy = self.vy + GRAVITY * dt
+    self.vy = self.vy + self.gravity * dt
 
     -- Update position
     local newX = self.x + self.vx * dt

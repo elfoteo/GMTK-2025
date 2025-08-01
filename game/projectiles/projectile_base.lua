@@ -9,6 +9,7 @@
 ---@field height number
 ---@field image love.Image
 ---@field trail_options table
+---@field damage number
 local ProjectileBase = {}
 ProjectileBase.__index = ProjectileBase
 
@@ -19,8 +20,9 @@ ProjectileBase.__index = ProjectileBase
 ---@param angle number The angle of the projectile.
 ---@param image_path string The path to the image for the projectile.
 ---@param trail_options table optional options for the particle trail
+---@param damage number The damage the projectile deals.
 ---@return ProjectileBase
-function ProjectileBase.new(x, y, speed, angle, image_path, trail_options)
+function ProjectileBase.new(x, y, speed, angle, image_path, trail_options, damage)
     local self = setmetatable({}, ProjectileBase)
     self.x = x
     self.y = y
@@ -32,6 +34,7 @@ function ProjectileBase.new(x, y, speed, angle, image_path, trail_options)
     self.width = self.image:getWidth()
     self.height = self.image:getHeight()
     self.trail_options = trail_options or {}
+    self.damage = damage or 10
     return self
 end
 

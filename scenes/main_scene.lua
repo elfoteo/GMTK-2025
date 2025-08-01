@@ -152,7 +152,8 @@ end
 
 ---Handles the result of a bullet collision.
 ---@param hitResult table The collision information from Projectile:update.
-function MainScene:handleBulletCollision(hitResult)
+---@param projectile ProjectileBase The projectile that hit.
+function MainScene:handleBulletCollision(hitResult, projectile)
     if hitResult.type == "wall" then
         self.particleSystem:emitCone(
             hitResult.x, hitResult.y,
@@ -161,26 +162,29 @@ function MainScene:handleBulletCollision(hitResult)
             nil, SparkParticle, 0.5
         )
     elseif hitResult.type == "enemy" then
-        self.score = self.score + 1
         local enemy_data = hitResult.enemy_data
         local enemy = enemy_data.enemy
-        for _ = 1, 30 do
-            local x = enemy.x + math.random(-enemy.size / 2, enemy.size / 2)
-            local y = enemy.y + math.random(-enemy.size / 2, enemy.size / 2)
-            local angle = math.random() * 2 * math.pi
-            local speed = 80 + math.random() * 80
-            local lifetime = 1 + math.random()
-            local vx = math.cos(angle) * speed
-            local vy = math.sin(angle) * speed
-            self.particleSystem:emit(x, y, vx, vy, lifetime, nil, EnemyDeathParticle, 1.5)
+        enemy:take_damage(projectile.damage, projectile)
+        if enemy.health <= 0 then
+            self.score = self.score + 1
+            for _ = 1, 30 do
+                local x = enemy.x + math.random(-enemy.hitboxW / 2, enemy.hitboxW / 2)
+                local y = enemy.y + math.random(-enemy.hitboxH / 2, enemy.hitboxH / 2)
+                local angle = math.random() * 2 * math.pi
+                local speed = 80 + math.random() * 80
+                local lifetime = 1 + math.random()
+                local vx = math.cos(angle) * speed
+                local vy = math.sin(angle) * speed
+                self.particleSystem:emit(x, y, vx, vy, lifetime, nil, EnemyDeathParticle, 1.5)
+            end
+            self.camera:shake(
+                5, 0.2,
+                hitResult.enemy.x, hitResult.enemy.y,
+                self.camera.x, self.camera.y
+            )
+            enemy_data.enemy = nil
+            enemy_data.respawn_timer = 3
         end
-        self.camera:shake(
-            5, 0.2,
-            hitResult.enemy.x, hitResult.enemy.y,
-            self.camera.x, self.camera.y
-        )
-        enemy_data.enemy = nil
-        enemy_data.respawn_timer = 3
     end
 end
 

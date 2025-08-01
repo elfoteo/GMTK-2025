@@ -291,8 +291,13 @@ function Player:updateProjectiles(dt, particleSystem, tilemap, enemies, world_mi
         local hitResult = p:update(dt, particleSystem, tilemap, enemies, world_min_x, world_max_x, world_min_y,
             world_max_y)
         if hitResult then
-            self.scene:handleBulletCollision(hitResult)
-            table.remove(self.projectiles, i)
+            -- Check if the hit should be ignored (e.g., hitting a vanished enemy)
+            local ignore_hit = hitResult.type == "enemy" and hitResult.enemy and hitResult.enemy.isVanished
+
+            if not ignore_hit then
+                self.scene:handleBulletCollision(hitResult, p)
+                table.remove(self.projectiles, i)
+            end
         end
     end
 end
@@ -313,18 +318,19 @@ function Player:drawProjectiles()
 end
 
 ---Simple AABB collision check against another entity.
----@param other_entity table The other entity (must have x, y, size).
+---@param other_entity table The other entity (must have x, y, hitboxW, and hitboxH).
 ---@return boolean True if overlapping.
 function Player:checkCollision(other_entity)
-    local halfW     = self.hitboxW / 2
-    local halfH     = self.hitboxH / 2
-    local halfOther = other_entity.size / 2
+    local halfW = self.hitboxW / 2
+    local halfH = self.hitboxH / 2
+    local otherHalfW = other_entity.hitboxW / 2
+    local otherHalfH = other_entity.hitboxH / 2
 
     return
-        (self.x - halfW) < (other_entity.x + halfOther) and
-        (self.x + halfW) > (other_entity.x - halfOther) and
-        (self.y - halfH) < (other_entity.y + halfOther) and
-        (self.y + halfH) > (other_entity.y - halfOther)
+        (self.x - halfW) < (other_entity.x + otherHalfW) and
+        (self.x + halfW) > (other_entity.x - otherHalfW) and
+        (self.y - halfH) < (other_entity.y + otherHalfH) and
+        (self.y + halfH) > (other_entity.y - otherHalfH)
 end
 
 ---Handle discrete keypresses.
