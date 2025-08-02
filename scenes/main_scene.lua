@@ -1,16 +1,15 @@
-local SceneManager   = require("engine.scene_manager")
-local Scene          = require("engine.scene")
-local Player         = require("game.player.init")
-local Enemy          = require("game.enemy")
-local SandWraith     = require("game.enemies.sandwraith")
+local SceneManager = require("engine.scene_manager")
+local Scene = require("engine.scene")
+local Player = require("game.player.init")
+local EnemyFactory = require("game.enemy_factory") -- Use the factory
 local ParticleSystem = require("engine.particles.particle_system")
-local Crosshair      = require("engine.ui.crosshair")
-local Background     = require("game.background")
-local TileMap        = require("engine.tilemap")
-local CustomFont     = require("engine.custom_font")
-local Collectible    = require("game.collectible")
-local NoteUI         = require("game.note_ui")
-local UI             = require("engine.ui.ui")
+local Crosshair = require("engine.ui.crosshair")
+local Background = require("game.background")
+local TileMap = require("engine.tilemap")
+local CustomFont = require("engine.custom_font")
+local Collectible = require("game.collectible")
+local NoteUI = require("game.note_ui")
+local UI = require("engine.ui.ui")
 
 
 local EnemyDeathParticle = require("engine.particles.enemy_death_particle")
@@ -54,30 +53,30 @@ function MainScene.new()
     setmetatable(self, MainScene)
     ---@cast self MainScene
     -- placeholders; real init in load()
-    self.crosshair             = nil
-    self.customFont            = nil
-    self.customFont8px         = nil
-    self.player                = nil
-    self.enemies               = {}
-    self.background            = nil
-    self.collectibles          = {}
-    self.score                 = 0
-    self.howtoMoveImage        = nil
-    self.howtoShootImage       = nil
-    self.showMoveInstruction   = true
-    self.showShootInstruction  = true
-    self.moveInstructionAlpha  = 1
-    self.shootInstructionAlpha = 1
-    self.grassManager          = nil
-    self.t                     = 0
-    self.frame_times           = {}
-    self.frame_time_index      = 1
-    self.avg_fps               = 0
-    self.note_ui               = nil
-    self.game_frozen           = false
-    self.spawned_enemies       = {}
-    self.ui                    = nil
-
+    self.crosshair              = nil
+    self.customFont             = nil
+    self.customFont8px          = nil
+    self.player                 = nil
+    self.enemies                = {}
+    self.background             = nil
+    self.collectibles           = {}
+    self.score                  = 0
+    self.howtoMoveImage         = nil
+    self.howtoShootImage        = nil
+    self.showMoveInstruction    = true
+    self.showShootInstruction   = true
+    self.moveInstructionAlpha   = 1
+    self.shootInstructionAlpha  = 1
+    self.grassManager           = nil
+    self.t                      = 0
+    self.frame_times            = {}
+    self.frame_time_index       = 1
+    self.avg_fps                = 0
+    self.note_ui                = nil
+    self.game_frozen            = false
+    self.spawned_enemies        = {}
+    self.ui                     = nil
+    self.player_damage_cooldown = 0
     return self
 end
 
@@ -124,9 +123,9 @@ function MainScene:load()
         if not self.spawned_enemies[spawn_key] then
             local enemy_x = spawn_point.tile_x * self.tilemap.tile_size + self.tilemap.tile_size / 2
             local enemy_y = spawn_point.tile_y * self.tilemap.tile_size + self.tilemap.tile_size / 2
-            if spawn_point.type == "sandwraith" then
-                table.insert(self.enemies,
-                    { enemy = SandWraith.new(self, enemy_x, enemy_y - 8, 20), respawn_timer = nil })
+            local new_enemy = EnemyFactory.create(spawn_point.type, self, enemy_x, enemy_y)
+            if new_enemy then
+                table.insert(self.enemies, { enemy = new_enemy, respawn_timer = nil })
                 self.spawned_enemies[spawn_key] = true
             end
         end
@@ -204,6 +203,8 @@ function MainScene:update(dt)
 
     Scene.update(self, dt)
 
+    self.player_damage_cooldown = math.max(0, self.player_damage_cooldown - dt)
+
     -- background
     self.background:update(dt)
 
@@ -255,10 +256,13 @@ function MainScene:update(dt)
         return -- Stop updating if player is dead
     end
     -- Check for player-enemy collision
-    for _, enemy_data in ipairs(self.enemies) do
-        if enemy_data.enemy and self.player:checkCollision(enemy_data.enemy) then
-            SceneManager.gotoScene(require("scenes.death_scene").new())
-            return -- Stop updating if player is dead
+    if self.player.touch_damage_cooldown <= 0 then
+        for _, enemy_data in ipairs(self.enemies) do
+            if enemy_data.enemy and self.player:checkCollision(enemy_data.enemy) then
+                self.player:take_damage(10, enemy_data.enemy) -- deal 10 damage
+                self.player.touch_damage_cooldown = 1         -- 1 second cooldown
+                break                                         -- only take damage from one enemy at a time
+            end
         end
     end
 

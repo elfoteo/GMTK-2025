@@ -3,6 +3,7 @@ local AnimationHandler = require("game.player.animation_handler")
 local CombatHandler = require("game.player.combat_handler")
 local MovementHandler = require("game.player.movement_handler")
 local RewindHandler = require("game.player.rewind_handler")
+local SceneManager = require("engine.scene_manager")
 
 --- The main player character.
 --- This class is responsible for managing the player's state, including movement,
@@ -29,6 +30,7 @@ local RewindHandler = require("game.player.rewind_handler")
 ---@field combat_handler CombatHandler The handler for the player's combat logic.
 ---@field movement_handler MovementHandler The handler for the player's movement physics.
 ---@field rewind_handler RewindHandler The handler for the player's time rewind ability.
+---@field touch_damage_cooldown number A cooldown to prevent taking damage every frame from the same source.
 local Player = setmetatable({}, { __index = Living })
 Player.__index = Player
 
@@ -53,6 +55,7 @@ function Player.new(scene, x, y, speed)
     p.fall_distance = 0
     p.mana = 0
     p.mana_regeneration_rate = 10 -- Mana per second
+    p.touch_damage_cooldown = 0
 
     p.animation_handler = AnimationHandler:new(p)
     p.combat_handler = CombatHandler:new()
@@ -71,6 +74,8 @@ function Player:update(dt, level, particle_system)
     local wasOnGround = self.onGround
     local wasClimbing = self.isClimbing
 
+    p.touch_damage_cooldown = math.max(0, p.touch_damage_cooldown - dt)
+
     self.movement_handler:update(dt, level, self)
     self.rewind_handler:update(dt, self, particle_system)
     self.animation_handler:update(dt, self, wasClimbing, wasOnGround)
@@ -78,6 +83,70 @@ function Player:update(dt, level, particle_system)
     self.scene.grassManager:apply_force({ x = self.x, y = self.y }, 8, 16)
 
     self.mana = math.min(100, self.mana + self.mana_regeneration_rate * dt)
+end
+---@field touch_damage_cooldown number A cooldown to prevent taking damage every frame from the same source.
+local Player = setmetatable({}, { __index = Living })
+Player.__index = Player
+
+--- Creates a new Player instance.
+---@param scene MainScene The main scene object that contains the player.
+---@param x number The initial x-coordinate for the player.
+---@param y number The initial y-coordinate for the player.
+---@param speed number The movement speed for the player.
+---@return Player The new player instance.
+function Player.new(scene, x, y, speed)
+    local p = Living.new(scene, x, y, speed)
+    setmetatable(p, Player)
+    ---@cast p Player
+    p.vx, p.vy = 0, 0
+    p.onGround = false
+    p.isClimbing = false
+    p.size = 26
+    p.hitboxW, p.hitboxH = 16, 26
+    p.direction = 1
+    p.lastDownPressTime = 0
+    p.dropThrough = false
+    p.fall_distance = 0
+    p.mana = 0
+    p.mana_regeneration_rate = 10 -- Mana per second
+    p.touch_damage_cooldown = 0
+
+    p.animation_handler = AnimationHandler:new(p)
+    p.combat_handler = CombatHandler:new()
+    p.movement_handler = MovementHandler
+    p.rewind_handler = RewindHandler:new()
+
+    return p
+end
+
+--- Updates the player's state for the current frame.
+--- This calls the update methods of all the player's handlers.
+---@param dt number The time elapsed since the last frame (delta time).
+---@param level TileMap The level's tilemap for collision detection.
+---@param particle_system ParticleSystem The main particle system for creating effects.
+function Player:update(dt, level, particle_system)
+    local wasOnGround = self.onGround
+    local wasClimbing = self.isClimbing
+
+    self.touch_damage_cooldown = math.max(0, self.touch_damage_cooldown - dt)
+
+    self.movement_handler:update(dt, level, self)
+    self.rewind_handler:update(dt, self, particle_system)
+    self.animation_handler:update(dt, self, wasClimbing, wasOnGround)
+
+    self.scene.grassManager:apply_force({ x = self.x, y = self.y }, 8, 16)
+
+    self.mana = math.min(100, self.mana + self.mana_regeneration_rate * dt)
+end
+
+--- Inflicts damage on the player and checks for death.
+---@param damage number The amount of damage to inflict.
+---@param source Living The object that is the source of the damage.
+function Player:take_damage(damage, source)
+    Living.take_damage(self, damage)
+    if self.health <= 0 then
+        SceneManager.gotoScene(require("scenes.death_scene").new())
+    end
 end
 
 --- Updates the state of all projectiles fired by the player.

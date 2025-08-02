@@ -3,3 +3,4 @@ game.love
 .env
 backup/
 imgui.ini
+*.tiled-session

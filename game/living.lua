@@ -1,66 +1,83 @@
----
--- Base class for all living entities in the game that have health
+--- Base class for all living entities in the game that have health
 -- and can take damage.
---
 -- @classmod Living
 
 ---@class Living
----@field x number The x-coordinate.
----@field y number The y-coordinate.
----@field speed number The base movement speed.
----@field health number The current health.
----@field scene MainScene The scene the entity belongs to.
+---@field public x number The current x-coordinate.
+---@field public y number The current y-coordinate.
+---@field public health number The current health of the entity.
+---@field public max_health number The maximum health of the entity.
+---@field public speed number The movement speed of the entity.
+---@field public scene Scene The scene the entity belongs to.
 local Living = {}
 Living.__index = Living
 
---- Creates a new Living object.
+--- Creates a new Living entity.
 ---@param scene Scene The scene the entity belongs to.
 ---@param x number The initial x-coordinate.
 ---@param y number The initial y-coordinate.
----@param speed number The base movement speed.
+---@param speed number The movement speed.
+---@param max_health number? Optional maximum health (defaults to 100).
 ---@return Living
-function Living.new(scene, x, y, speed)
-    local self = {}
-    setmetatable(self, Living)
+function Living.new(scene, x, y, speed, max_health)
+    local self = setmetatable({}, Living)
     self.scene = scene
-    self.x = x
-    self.y = y
-    self.speed = speed
-    self.health = 100
+    self.x = x or 0
+    self.y = y or 0
+    self.speed = speed or 0
+    self.max_health = max_health or 100
+    self.health = self.max_health
     return self
 end
 
 ---
 -- Inflicts damage on the entity.
--- This is the base implementation and should be extended by subclasses.
+-- If health drops to zero or below, calls `die`.
+-- Subclasses may override but should call this base.
 -- @param damage number The amount of damage to inflict.
 -- @param source table? The source of the damage (optional).
 function Living:take_damage(damage, source)
-    self.health = self.health - damage
-end
+    if damage <= 0 then return end
 
----
--- Handles the entity's death.
--- The default behavior is to remove the entity from the scene.
-function Living:die()
-    if self.scene and self.scene.remove then
-        self.scene:remove(self)
+    self.health = self.health - damage
+
+    if self.health <= 0 then
+        self.health = 0
+        self:die(source)
     end
 end
 
 ---
+-- Heals the entity by a given amount, up to max_health.
+-- @param amount number The amount to heal.
+function Living:heal(amount)
+    if amount <= 0 then return end
+
+    self.health = math.min(self.health + amount, self.max_health)
+end
+
+-- Handles the death of a living entity
+-- Subclasses need to override this
+-- @param source table? The source that caused death (optional).
+function Living:die(source)
+end
+
+---
 -- Main update loop. Should be overridden by subclasses.
--- @param dt number The time since the last frame.
+-- Called once per frame with the elapsed time.
+-- @param dt number Time since the last frame.
 function Living:update(dt)
     -- Override in subclasses
 end
 
 ---
 -- Draws the entity. Should be overridden by subclasses.
+-- Default: draw a simple white square of size 10×10.
 function Living:draw()
-    -- Example: Draw a simple white square
+    love.graphics.push()
     love.graphics.setColor(1, 1, 1)
     love.graphics.rectangle("fill", self.x, self.y, 10, 10)
+    love.graphics.pop()
 end
 
 return Living
