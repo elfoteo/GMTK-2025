@@ -1,10 +1,20 @@
 local Animated = require("engine.animated")
 
+--- Manages the player's animations.
+--- This handler contains a state machine for all player animations and determines
+--- which animation should be playing based on the player's current state (e.g.,
+--- walking, jumping, climbing).
+---@class AnimationHandler
+---@field animation Animated The underlying animation state machine.
 local AnimationHandler = {}
 
+--- Creates a new AnimationHandler instance.
+---@param player Player The player instance this handler will be attached to.
+---@return AnimationHandler The new animation handler instance.
 function AnimationHandler:new(player)
     local p = player
     local handler = {}
+    ---@type Animated
     handler.animation = Animated:new({
         idle = { images = {}, path_pattern = "assets/entities/player-idle%d.png", frames = 4, delay = 0.4 },
         walk = { images = {}, path_pattern = "assets/entities/player-walk%d.png", frames = 4, delay = 0.1 },
@@ -68,7 +78,15 @@ function AnimationHandler:new(player)
     return setmetatable(handler, { __index = AnimationHandler })
 end
 
+--- Updates the animation state based on player actions and physics.
+---@param dt number The time elapsed since the last frame (delta time).
+---@param player Player The player instance.
+---@param wasClimbing boolean Whether the player was climbing in the previous frame.
+---@param wasOnGround boolean Whether the player was on the ground in the previous frame.
 function AnimationHandler:update(dt, player, wasClimbing, wasOnGround)
+    -- If rewinding, the rewind handler controls the animation frame by frame.
+    -- We only update the animation timer to progress the current frame's duration,
+    -- but we don't run the state-switching logic.
     if player.rewind_handler.is_rewinding then
         self.animation:update(dt)
         return
@@ -86,6 +104,7 @@ function AnimationHandler:update(dt, player, wasClimbing, wasOnGround)
     local next_anim
     local current_anim = self.animation.current_state
 
+    -- Animation state machine logic
     if current_anim == "attack" and not self.animation.is_finished then
         next_anim = "attack"
     elseif current_anim == "turn_to_climb" and not self.animation.is_finished then
@@ -117,6 +136,11 @@ function AnimationHandler:update(dt, player, wasClimbing, wasOnGround)
     end
 end
 
+--- Draws the player's current animation frame.
+---@param x number The x-coordinate to draw at.
+---@param y number The y-coordinate to draw at.
+---@param direction number The direction the player is facing (1 for right, -1 for left).
+---@param size number The size to draw the sprite.
 function AnimationHandler:draw(x, y, direction, size)
     local ox, oy = size / 2, size / 2
     self.animation:draw(x, y, 0, direction, 1, ox, oy)

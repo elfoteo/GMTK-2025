@@ -1,8 +1,16 @@
+--- Handles all player physics and movement-related logic.
+--- This includes gravity, jumping, walking, climbing, and collision detection
+--- with the level geometry. It is a stateless handler, consisting only of functions.
+---@class MovementHandler
 local MovementHandler = {}
 
 local GRAVITY = 450
 local JUMP_FORCE = -180
 
+--- Updates the player's position and velocity based on input and physics.
+---@param dt number The time elapsed since the last frame (delta time).
+---@param level TileMap The level's tilemap for collision detection.
+---@param player Player The player instance to update.
 function MovementHandler:update(dt, level, player)
     if player.rewind_handler.is_rewinding then return end
 
@@ -20,6 +28,7 @@ function MovementHandler:update(dt, level, player)
     local tile_bottom = level:getTileAtPixel(player.x, player.y + player.hitboxH * 0.7)
     local onClimbable = (tile_top and tile_top.climbable) or (tile_bottom and tile_bottom.climbable)
 
+    -- Climbing logic
     if ((tile_top and tile_top.climbable) and not player.isClimbing and dy < 0) or (onClimbable and not player.isClimbing and dy > 0) then
         player.isClimbing = true
         local snap_tile = (tile_bottom and tile_bottom.climbable and tile_bottom)
@@ -51,6 +60,7 @@ function MovementHandler:update(dt, level, player)
         end
     end
 
+    -- Standard movement physics
     if not player.isClimbing then
         player.vy = player.vy + GRAVITY * dt
         player.hitboxW = (tile_bottom and tile_bottom.climbable) and 17 or 16
@@ -69,6 +79,7 @@ function MovementHandler:update(dt, level, player)
     local oldX, oldY = player.x, player.y
     local halfW, halfH = player.hitboxW / 2, player.hitboxH / 2
 
+    -- Horizontal movement and collision
     if not player.isClimbing then
         player.x = player.x + dx * player.speed * dt
         if dx ~= 0 and level:checkCollision(player.x - halfW, player.y - halfH, player.hitboxW, player.hitboxH) then
@@ -76,6 +87,7 @@ function MovementHandler:update(dt, level, player)
         end
     end
 
+    -- Vertical movement and collision
     player.y = player.y + player.vy * dt
 
     if player.vy ~= 0 then
@@ -107,10 +119,15 @@ function MovementHandler:update(dt, level, player)
         player.direction = (dx > 0) and 1 or -1
     end
 
+    -- Update final velocities for this frame
     player.vx = (player.x - oldX) / dt
     player.vy = (player.y - oldY) / dt
 end
 
+--- Handles key press events for movement-specific actions.
+--- Specifically, this handles the "drop through platform" mechanic.
+---@param key string The key that was pressed.
+---@param player Player The player instance.
 function MovementHandler:keypressed(key, player)
     if key == "s" or key == "down" then
         local now = love.timer.getTime()

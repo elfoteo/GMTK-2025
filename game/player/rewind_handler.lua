@@ -1,5 +1,17 @@
-local RewindHandler = {}
 local SparkParticle = require("engine.particles.spark_particle")
+
+--- Manages the player's time rewind ability.
+--- This handler records a history of the player's position and animation state.
+--- When activated, it plays back the last few seconds of history in reverse,
+--- moving the player along their previous path.
+---@class RewindHandler
+---@field history table A list of past player states (position, animation, timestamp).
+---@field history_timer number A timer to control how often history snapshots are saved.
+---@field is_rewinding boolean True if the rewind ability is currently active.
+---@field rewind_timer number A timer to control the duration of the rewind effect.
+---@field rewind_path table The path of states to follow during the current rewind.
+---@field particle_spawn_timer number A timer to control the spawning of rewind visual effects.
+local RewindHandler = {}
 
 local REWIND_ABILITY_CAST_TIME = 2 -- seconds for the rewind effect
 local TOTAL_REWIND_TIME = 4        -- seconds of history to play back
@@ -7,6 +19,8 @@ local HISTORY_INTERVAL = 0.1       -- seconds between history snapshots
 local HISTORY_LENGTH = TOTAL_REWIND_TIME -- for clarity
 local PARTICLE_SPAWN_INTERVAL = 0.1
 
+--- Creates a new RewindHandler instance.
+---@return RewindHandler
 function RewindHandler:new()
     local handler = {
         history = {},
@@ -19,11 +33,18 @@ function RewindHandler:new()
     return setmetatable(handler, { __index = RewindHandler })
 end
 
+--- Updates the rewind handler.
+--- If rewinding, it moves the player along the rewind path.
+--- If not, it records the player's current state into the history.
+---@param dt number The time elapsed since the last frame (delta time).
+---@param player Player The player instance.
+---@param particle_system ParticleSystem The main particle system for creating effects.
 function RewindHandler:update(dt, player, particle_system)
     if self.is_rewinding then
         self.rewind_timer = self.rewind_timer - dt
         self.particle_spawn_timer = self.particle_spawn_timer - dt
 
+        -- Spawn particles for visual effect
         if self.particle_spawn_timer <= 0 then
             self.particle_spawn_timer = PARTICLE_SPAWN_INTERVAL
             particle_system:emitBurst(
@@ -33,6 +54,7 @@ function RewindHandler:update(dt, player, particle_system)
             )
         end
 
+        -- Check if rewind is finished
         if self.rewind_timer <= 0 then
             self.is_rewinding = false
             if #self.rewind_path > 0 then
@@ -43,6 +65,7 @@ function RewindHandler:update(dt, player, particle_system)
                 player.animation_handler.animation.current_frame = final_state.anim_frame
             end
         else
+            -- Move player along the rewind path
             local progress = 1 - (self.rewind_timer / REWIND_ABILITY_CAST_TIME)
             local index_float = 1 + progress * (#self.rewind_path - 1)
             local index1 = math.floor(index_float)
@@ -62,6 +85,7 @@ function RewindHandler:update(dt, player, particle_system)
             end
         end
     else
+        -- Record history
         self.history_timer = self.history_timer + dt
         if self.history_timer >= HISTORY_INTERVAL then
             self.history_timer = 0
@@ -79,6 +103,9 @@ function RewindHandler:update(dt, player, particle_system)
     end
 end
 
+--- Initiates the rewind ability.
+--- This builds the rewind path from the recorded history.
+---@param player Player The player instance.
 function RewindHandler:start_rewind(player)
     if player.mana < 100 or self.is_rewinding then return end
     player.mana = player.mana - 100
@@ -112,6 +139,9 @@ function RewindHandler:start_rewind(player)
     end
 end
 
+--- Handles key press events to activate the rewind ability.
+---@param key string The key that was pressed.
+---@param player Player The player instance.
 function RewindHandler:keypressed(key, player)
     if key == "r" then
         self:start_rewind(player)

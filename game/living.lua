@@ -9,7 +9,7 @@
 ---@field y number The y-coordinate.
 ---@field speed number The base movement speed.
 ---@field health number The current health.
----@field scene Scene The scene the entity belongs to.
+---@field scene MainScene The scene the entity belongs to.
 local Living = {}
 Living.__index = Living
 
@@ -64,4 +64,3 @@ function Living:draw()
 end
 
 return Living
-
