@@ -134,4 +134,13 @@ function MainMenuScene:mousereleased(x, y, button)
     end
 end
 
+function MainMenuScene:keypressed(key)
+    if key == "f11" then
+        love.window.setFullscreen(
+            not love.window.getFullscreen(),
+            "desktop"
+        )
+    end
+end
+
 return MainMenuScene
