@@ -137,9 +137,26 @@ function Enemy:update(dt, player)
     end
 end
 
--- Inflicts damage on the enemy, applying stun and knockback.
--- @param damage number The amount of damage to inflict.
+---
+-- Applies a knockback force to the enemy.
+-- This can be overridden by subclasses for custom knockback effects.
 -- @param source table The source of the damage (e.g., the player), must have `x` and `y` properties.
+function Enemy:apply_knockback(source)
+    if not self.is_knocked_back then
+        local knockback_strength = 100
+        local dx = self.x - source.x
+        if dx ~= 0 then
+            self.vx = (dx / math.abs(dx)) * knockback_strength
+        end
+        self.vy = -25 -- A small upward hop to make the knockback visible
+        self.is_knocked_back = true
+        self.on_ground = false
+    end
+end
+
+-- Inflicts damage on the enemy, applying stun and knockback.
+---@param damage number The amount of damage to inflict.
+---@param source table The source of the damage (e.g., the player)
 function Enemy:take_damage(damage, source)
     if self.isVanished then return end
 
@@ -149,19 +166,31 @@ function Enemy:take_damage(damage, source)
     self.stun_timer = 0.3 -- A longer stun allows the knockback to play out
 
     -- Apply knockback
-    if not self.is_knocked_back then
-        local knockback_strength = 50
-        local dx = self.x - source.x
-        if dx ~= 0 then
-            self.vx = (dx / math.abs(dx)) * knockback_strength
-        end
-        self.vy = -25 -- A small upward hop to make the knockback visible
-        self.is_knocked_back = true
-        self.on_ground = false
-    end
+    self:apply_knockback(source)
 
     -- Increase attack cooldown
     self.attack_cooldown = self.attack_cooldown + 0.2
+end
+
+--- Draws a health bar above the enemy if it has taken damage.
+function Enemy:draw_health_bar()
+    if self.health < self.max_health then
+        local bar_width = 40
+        local bar_height = 5
+        local bar_x = self.x - bar_width / 2
+        local bar_y = self.y - self.hitboxH / 2 - 15
+
+        -- Background
+        love.graphics.setColor(0.8, 0, 0, 0.7)
+        love.graphics.rectangle("fill", bar_x, bar_y, bar_width, bar_height)
+
+        -- Foreground
+        local health_percentage = self.health / self.max_health
+        love.graphics.setColor(0, 0.8, 0, 0.7)
+        love.graphics.rectangle("fill", bar_x, bar_y, bar_width * health_percentage, bar_height)
+
+        love.graphics.setColor(1, 1, 1, 1) -- Reset color
+    end
 end
 
 ---
@@ -182,6 +211,7 @@ function Enemy:draw()
         self.hitboxH
     )
     love.graphics.pop()
+    self:draw_health_bar()
 end
 
 return Enemy

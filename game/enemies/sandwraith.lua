@@ -32,16 +32,18 @@ local SandParticle = require("engine.particles.sand_particle")
 local SandWraith = setmetatable({}, { __index = Enemy })
 SandWraith.__index = SandWraith
 
+-- Constants
+local SPEED = 20
+
 ---
 -- Creates a new SandWraith.
 -- @param scene Scene The scene the enemy belongs to.
 -- @param x number The initial x-coordinate.
 -- @param y number The initial y-coordinate.
--- @param speed number The base movement speed.
 -- @return SandWraith
-function SandWraith.new(scene, x, y, speed)
+function SandWraith.new(scene, x, y)
     -- Note: Hitbox dimensions are passed directly to the base Enemy constructor.
-    local sw = Enemy.new(scene, x, y, speed, 48, 56)
+    local sw = Enemy.new(scene, x, y, SPEED, 48, 56)
     setmetatable(sw, SandWraith)
     ---@cast sw SandWraith
 
@@ -250,6 +252,7 @@ function SandWraith:draw()
     local ox = self.hitboxW / 2
     local oy = self.hitboxH / 2
     self.animation:draw(self.x, self.y, 0, self.direction, 1, ox, oy)
+    self:draw_health_bar()
 end
 
 ---

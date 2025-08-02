@@ -3,6 +3,8 @@ local SceneManager = require("engine.scene_manager")
 local CustomFont = require("engine.custom_font")
 local StyledButton = require("engine.ui.styled_button")
 local ParticleSystem = require("engine.particles.particle_system")
+local MainSceneClass = require("scenes.main_scene")
+local CreditsSceneClass = require("scenes.credits_scene")
 
 local CANVAS_W, CANVAS_H = 384, 216
 
@@ -35,6 +37,7 @@ function MainMenuScene.new()
     local start_x = (CANVAS_W - button_width) / 2
 
     self.particleSystem = ParticleSystem.new()
+    print(MainSceneClass)
 
     self.playButton = StyledButton.new(
         start_x,
@@ -43,7 +46,7 @@ function MainMenuScene.new()
         button_height,
         "Play",
         function()
-            SceneManager.gotoScene(require("scenes.main_scene").new())
+            SceneManager.gotoScene(MainSceneClass.new())
         end,
         self.customFont16px,
         { 0.6, 0.6, 0.6, 1 },
@@ -57,7 +60,7 @@ function MainMenuScene.new()
         button_height,
         "Credits",
         function()
-            SceneManager.gotoScene(require("scenes.credits_scene").new())
+            SceneManager.gotoScene(CreditsSceneClass.new())
         end,
         self.customFont16px,
         { 0.6, 0.6, 0.6, 1 },
