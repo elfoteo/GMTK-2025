@@ -1,5 +1,5 @@
 package.path             = package.path ..
-    ';./?.lua;./?/init.lua;engine/?.lua;engine/ui/?.lua;engine/particles/?.lua;game/?.lua;scenes/?.lua;game/weapons/?.lua;game/projectiles/?.lua'
+    ';./?.lua;./?/init.lua;engine/?.lua;engine/ui/?.lua;engine/particles/?.lua;game/?.lua;game/player/?.lua;scenes/?.lua;game/weapons/?.lua;game/projectiles/?.lua'
 
 local SceneManager       = require("engine.scene_manager")
 local MainMenuScene    = require("scenes.main_menu_scene")

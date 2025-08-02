@@ -1,6 +1,6 @@
 local SceneManager   = require("engine.scene_manager")
 local Scene          = require("engine.scene")
-local Player         = require("game.player")
+local Player         = require("game.player.init")
 local Enemy          = require("game.enemy")
 local SandWraith     = require("game.enemies.sandwraith")
 local ParticleSystem = require("engine.particles.particle_system")
@@ -262,9 +262,8 @@ function MainScene:update(dt)
         end
     end
 
-    -- bullet updates & collisions
-    self.player:updateProjectiles(dt, self.particleSystem, self.tilemap, self.enemies, world_min_x, world_max_x,
-        world_min_y, world_max_y)
+    self.player.combat_handler:update(dt, self.particleSystem, self.tilemap, self.enemies, world_min_x, world_max_x,
+        world_min_y, world_max_y, self)
 
     -- Collectible collision
     for key, collectible in pairs(self.collectibles) do
@@ -335,7 +334,7 @@ function MainScene:draw()
 
     self.particleSystem:draw()
     self.player:draw()
-    self.player:drawProjectiles()
+    self.player.combat_handler:draw()
     for _, enemy_data in ipairs(self.enemies) do
         if enemy_data.enemy then
             enemy_data.enemy:draw()
