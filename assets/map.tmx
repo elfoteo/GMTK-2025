@@ -52,9 +52,34 @@
     <property name="grass_types" value="2,6"/>
    </properties>
   </tile>
+  <tile id="22">
+   <properties>
+    <property name="collision" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="23">
+   <properties>
+    <property name="collision" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="30">
+   <properties>
+    <property name="collision" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="31">
+   <properties>
+    <property name="collision" type="bool" value="false"/>
+   </properties>
+  </tile>
   <tile id="32">
    <properties>
     <property name="climbable" type="bool" value="true"/>
+    <property name="collision" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="34">
+   <properties>
     <property name="collision" type="bool" value="false"/>
    </properties>
   </tile>
@@ -71,6 +96,24 @@
    </properties>
   </tile>
   <tile id="44">
+   <properties>
+    <property name="collision" type="bool" value="true"/>
+    <property name="platform" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="45">
+   <properties>
+    <property name="collision" type="bool" value="true"/>
+    <property name="platform" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="46">
+   <properties>
+    <property name="collision" type="bool" value="true"/>
+    <property name="platform" type="bool" value="true"/>
+   </properties>
+  </tile>
+  <tile id="47">
    <properties>
     <property name="collision" type="bool" value="true"/>
     <property name="platform" type="bool" value="true"/>
@@ -182,7 +225,7 @@
  <imagelayer id="5" name="Image Layer 1" visible="0" offsetx="0" offsety="-130">
   <image source="misc/concept.png" width="400" height="215"/>
  </imagelayer>
- <layer id="1" name="Tile Layer 1" width="30" height="20">
+ <layer id="1" name="Main" width="30" height="20">
   <data encoding="csv">
    <chunk x="0" y="-16" width="16" height="16">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -190,9 +233,9 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,3,3,3,0,1,2,0,0,0,0,0,0,
-0,0,0,0,9,11,11,33,9,11,0,0,0,0,0,0,
-0,0,0,0,25,27,31,33,0,0,0,0,43,44,44,44,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,46,47,47,33,47,48,0,0,0,0,0,0,
+0,0,0,0,47,47,31,33,0,0,0,0,43,44,44,44,
 0,0,0,0,0,0,0,33,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,33,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,33,0,0,0,0,0,4,0,0,

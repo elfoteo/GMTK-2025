@@ -10,6 +10,7 @@ local TileMap        = require("engine.tilemap")
 local CustomFont     = require("engine.custom_font")
 local Collectible    = require("game.collectible")
 local NoteUI         = require("game.note_ui")
+local UI             = require("engine.ui.ui")
 
 
 local EnemyDeathParticle = require("engine.particles.enemy_death_particle")
@@ -42,6 +43,7 @@ local CANVAS_W, CANVAS_H = 384, 216
 ---@field frame_times table
 ---@field frame_time_index number
 ---@field avg_fps number
+---@field ui UI
 local MainScene          = setmetatable({}, { __index = Scene })
 MainScene.__index        = MainScene
 
@@ -74,6 +76,7 @@ function MainScene.new()
     self.note_ui               = nil
     self.game_frozen           = false
     self.spawned_enemies       = {}
+    self.ui                    = nil
 
     return self
 end
@@ -86,11 +89,9 @@ function MainScene:load()
     love.mouse.setVisible(false)
     love.mouse.setGrabbed(false)
 
-    -- assets
-    self.crosshair = Crosshair.new("assets/gui/crosshair.png", 1)
-    self.healthBarImage = love.graphics.newImage("assets/gui/bars.png")
-    self.healthBarMask = love.graphics.newImage("assets/gui/health-bar-mask.png")
-    self.healthBarShader = love.graphics.newShader("engine/shaders/health_bar_tint.glsl")
+    -- ui
+    self.ui = UI.new(self)
+    self.ui.scene = self -- Pass the scene to the UI so it can access scene functions
 
     -- instruction images
     self.howtoMoveImage = love.graphics.newImage("assets/misc/howto-move.png")
@@ -343,23 +344,10 @@ function MainScene:draw()
 
     self.camera:detach()
 
-    -- HUD & crosshair
-    love.graphics.setColor(1, 1, 1)
-    self.customFont8px:print("Score: " .. self.score, 4, 4, { 1, 1, 0, 1 })
-    self.customFont8px:print("FPS: " .. math.floor(self.avg_fps), 4, 14, { 1, 1, 0, 1 })
-
-    -- Draw health bar
-    love.graphics.draw(self.healthBarImage, 11, 184)
-    love.graphics.setShader(self.healthBarShader)
-    self.healthBarShader:send("health_ratio", self.player.health / 100)
-    love.graphics.draw(self.healthBarMask, 11, 184)
-    love.graphics.setShader()
+    -- Draw UI
+    self.ui:draw()
 
     self.note_ui:draw()
-
-    local mx, my = love.mouse.getPosition()
-    local cx, cy = self:toCanvas(mx, my)
-    self.crosshair:draw(math.floor(cx) + 0.5, math.floor(cy) + 0.5)
 
     love.graphics.setCanvas()
     love.graphics.setColor(1, 1, 1)

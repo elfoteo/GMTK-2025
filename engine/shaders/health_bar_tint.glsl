@@ -1,17 +1,24 @@
 extern float health_ratio;
 
-vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
-    vec4 mask_color = Texel(texture, texture_coords);
+vec4 effect(vec4 color, Image texture, vec2 uv, vec2 screen_coords) {
+    // Sample the mask (grayscale + alpha)
+    vec4 mcol = Texel(texture, uv);
+    float maskAlpha = mcol.a;
+    float maskVal   = mcol.r;    // R=G=B for a grayscale gradient
 
-    if (mask_color.a > 0.5) { // Transparent part of the mask
-        float bar_start = 11.0 / 128.0;
-        float bar_width = 106.0 / 128.0;
-        float masked_x = bar_start + health_ratio * bar_width;
+    // Only operate inside the shape of your mask
+    if (maskAlpha > 0.5) {
+        // Compute threshold: when health=1 → thresh=0 → all maskVal≥0 pass
+        // when health=0 → thresh=1 → no maskVal<1 pass (empty)
+        float thresh = 1.0 - clamp(health_ratio, 0.0, 1.0);
 
-        if (texture_coords.x >= bar_start && texture_coords.x < masked_x) {
-            return vec4(1.0, 0.0, 0.0, 1.0); // Solid red
+        // If this pixel’s grayscale ≥ thresh, it’s “filled”
+        if (maskVal >= thresh) {
+            return vec4(1.0, 0.0, 0.0, 1.0);
         }
     }
 
-    return vec4(0.0, 0.0, 0.0, 0.0);
+    // Otherwise transparent
+    return vec4(0.0);
 }
+

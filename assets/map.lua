@@ -251,9 +251,39 @@ return {
           }
         },
         {
+          id = 22,
+          properties = {
+            ["collision"] = false
+          }
+        },
+        {
+          id = 23,
+          properties = {
+            ["collision"] = false
+          }
+        },
+        {
+          id = 30,
+          properties = {
+            ["collision"] = false
+          }
+        },
+        {
+          id = 31,
+          properties = {
+            ["collision"] = false
+          }
+        },
+        {
           id = 32,
           properties = {
             ["climbable"] = true,
+            ["collision"] = false
+          }
+        },
+        {
+          id = 34,
+          properties = {
             ["collision"] = false
           }
         },
@@ -279,6 +309,27 @@ return {
           }
         },
         {
+          id = 45,
+          properties = {
+            ["collision"] = true,
+            ["platform"] = true
+          }
+        },
+        {
+          id = 46,
+          properties = {
+            ["collision"] = true,
+            ["platform"] = true
+          }
+        },
+        {
+          id = 47,
+          properties = {
+            ["collision"] = true,
+            ["platform"] = true
+          }
+        },
+        {
           id = 48,
           properties = {
             ["collision"] = false
@@ -288,6 +339,12 @@ return {
           id = 49,
           properties = {
             ["collision"] = false
+          }
+        },
+        {
+          id = 50,
+          properties = {
+            ["interactable"] = true
           }
         },
         {
@@ -391,7 +448,7 @@ return {
       width = 30,
       height = 20,
       id = 1,
-      name = "Tile Layer 1",
+      name = "Main",
       class = "",
       visible = true,
       opacity = 1,
@@ -410,9 +467,9 @@ return {
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 3, 3, 3, 0, 1, 2, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 9, 11, 11, 33, 9, 11, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 25, 27, 31, 33, 0, 0, 0, 0, 43, 44, 44, 44,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 46, 47, 47, 33, 47, 48, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 47, 47, 31, 33, 0, 0, 0, 0, 43, 44, 44, 44,
             0, 0, 0, 0, 0, 0, 0, 33, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 33, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 33, 0, 0, 0, 0, 0, 4, 0, 0,

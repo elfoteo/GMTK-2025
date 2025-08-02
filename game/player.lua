@@ -19,6 +19,13 @@ local SparkParticle       = require("engine.particles.spark_particle")
 ---@field projectiles  table
 ---@field lastAttackTime number
 ---@field secondLastAttackTime number
+---@field lastDownPressTime number
+---@field dropThrough boolean
+---@field history table
+---@field history_timer number
+---@field fall_distance number
+---@field mana number
+---@field mana_regeneration_rate number
 local Player              = setmetatable({}, { __index = Living })
 Player.__index            = Player
 
@@ -30,23 +37,25 @@ local HISTORY_INTERVAL    = 0.1
 function Player.new(scene, x, y, speed)
     local p = Living.new(scene, x, y, speed)
     setmetatable(p, Player)
+    ---@cast p Player
+    p.vx, p.vy               = 0, 0
+    p.onGround               = false
+    p.isClimbing             = false
+    p.size                   = 26
+    p.hitboxW, p.hitboxH     = 16, 26
+    p.direction              = 1
+    p.projectiles            = {}
+    p.lastAttackTime         = nil
+    p.secondLastAttackTime   = nil
+    p.lastDownPressTime      = 0
+    p.dropThrough            = false
+    p.history                = {}
+    p.history_timer          = 0
+    p.fall_distance          = 0
+    p.mana                   = 0
+    p.mana_regeneration_rate = 10 -- Mana per second
 
-    p.vx, p.vy             = 0, 0
-    p.onGround             = false
-    p.isClimbing           = false
-    p.size                 = 26
-    p.hitboxW, p.hitboxH   = 16, 26
-    p.direction            = 1
-    p.projectiles          = {}
-    p.lastAttackTime       = nil
-    p.secondLastAttackTime = nil
-    p.lastDownPressTime    = 0
-    p.dropThrough          = false
-    p.history              = {}
-    p.history_timer        = 0
-    p.fall_distance        = 0
-
-    p.animation            = Animated:new({
+    p.animation              = Animated:new({
         idle = { images = {}, path_pattern = "assets/entities/player-idle%d.png", frames = 4, delay = 0.4 },
         walk = { images = {}, path_pattern = "assets/entities/player-walk%d.png", frames = 4, delay = 0.1 },
         jump_start = {
@@ -272,9 +281,16 @@ function Player:update(dt, level, particle_system)
     self.vy = (self.y - oldY) / dt
 
     self.scene.grassManager:apply_force({ x = self.x, y = self.y }, 8, 16)
+
+    -- Mana Regeneration
+    self.mana = math.min(100, self.mana + self.mana_regeneration_rate * dt)
 end
 
 function Player:rewind()
+    if self.mana < 100 then return end
+
+    self.mana = self.mana - 100
+
     local now = love.timer.getTime()
     local target_time = now - REWIND_SECONDS
     local best_state = nil

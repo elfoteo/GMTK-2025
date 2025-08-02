@@ -91,6 +91,9 @@ function SandWraith.new(scene, x, y, speed)
     sw.attackCooldownTimer = sw.attackCooldownDuration
     sw.attackWaveCount = 0
     sw.timeSinceLastWave = 0
+    sw.vanishParticleTimer = 0
+    sw.vanishParticleCounter = 0
+    sw.attack_cast_timer = 0
 
     return sw
 end
@@ -105,7 +108,7 @@ function SandWraith:take_damage(damage, source)
 
     -- If hit while casting (in the attack animation, before vanishing), interrupt it.
     if self.aiState == "attacking" and not self.isVanished then
-        self.aiState = "engaging" -- Force back to engaging/cooldown state
+        self.aiState = "engaging"        -- Force back to engaging/cooldown state
         self.animation:set_state("idle") -- Reset the animation
         -- The base take_damage already adds to the cooldown.
     end
@@ -153,24 +156,40 @@ function SandWraith:ai(dt, player)
     self.vanishTimer = math.max(0, self.vanishTimer - dt)
     self.attackCooldownTimer = math.max(0, self.attackCooldownTimer - dt)
     self.timeSinceLastWave = self.timeSinceLastWave + dt
+    self.vanishParticleTimer = self.vanishParticleTimer - dt
 
     local distanceToPlayer = math.sqrt((player.x - self.x) ^ 2 + (player.y - self.y) ^ 2)
 
     -- State: Attacking
     if self.aiState == "attacking" then
         self.vx = 0 -- Stand still while attacking
+        self.attack_cast_timer = self.attack_cast_timer + dt
+
+        if self.attack_cast_timer >= 0.2 and self.vanishParticleCounter == 0 and not self.isVanished then
+            self.vanishParticleCounter = 2500 -- Set number of particles to spawn
+        end
+
         if not self.isVanished and self.animation.is_finished then
             -- Animation finished, now vanish and spawn particles
             self.isVanished = true
             self.vanishTimer = self.vanishDuration
             self.timeSinceLastWave = 0 -- Reset timer for wave timing
-
-            for _ = 1, 100 do
-                local angle = math.random() * 2 * math.pi
-                local speed = math.random(20, 80)
-                self.scene.particleSystem:emit(self.x, self.y, math.cos(angle) * speed, math.sin(angle) * speed, 2, nil, SandParticle)
-            end
         elseif self.isVanished then
+            -- Spawn vanish particles over time
+            if self.vanishParticleCounter > 0 and self.vanishParticleTimer <= 0 then
+                for _ = 1, 50 do -- 50 particles per frame
+                    -- X velocity from a short-range normal distribution
+                    local xvel = love.math.randomNormal(16, 0)
+
+                    -- Y velocity from a linear (uniform) distribution, favoring upward motion
+                    local yvel = love.math.randomNormal(20, 0) - 40
+
+                    self.scene.particleSystem:emit(self.x, self.y, xvel, yvel, 2, nil, SandParticle)
+                    self.vanishParticleCounter = self.vanishParticleCounter - 1
+                end
+
+                self.vanishParticleTimer = 0.016 -- Spawn next batch in 1 frame
+            end
             -- Handle wave shooting while vanished
             if self.attackWaveCount < 3 and self.timeSinceLastWave >= 0.6 * (self.attackWaveCount + 1) then
                 self:shootSandWave(player)
@@ -185,9 +204,10 @@ function SandWraith:ai(dt, player)
                 self.animation:set_state("idle")
                 self.attackWaveCount = 0
                 self.timeSinceLastWave = 0
+                self.attack_cast_timer = 0
             end
         end
-    -- States: Wandering or Engaging
+        -- States: Wandering or Engaging
     else
         if distanceToPlayer > self.detectionRange then
             self.aiState = "wandering"
@@ -202,7 +222,7 @@ function SandWraith:ai(dt, player)
             else
                 -- On cooldown, so reposition
                 if math.abs(distanceToPlayer - self.optimalDistance) < self.repositionBuffer then
-                    self.vx = 0 -- In position, so wait
+                    self.vx = 0                                   -- In position, so wait
                 else
                     self:reposition(dt, player, distanceToPlayer) -- Out of position, so move
                 end
@@ -237,10 +257,12 @@ end
 -- @param player Player The player to target.
 function SandWraith:shootSandWave(player)
     local angle_to_player = math.atan2(player.y - self.y, player.x - self.x)
-    for _ = 1, 500 do -- Increased sand amount
+    for _ = 1, 2000 do -- Increased sand amount
         local angle = angle_to_player + math.random() * 0.4 - 0.2
         local speed = math.random(150, 250)
-        self.scene.particleSystem:emit(self.x, self.y, math.cos(angle) * speed, math.sin(angle) * speed, 3, nil, SandParticle)
+        self.scene.particleSystem:emit(self.x + self.hitboxW / 2 * self.direction, self.y - self.hitboxH * math.random(),
+            math.cos(angle) * speed, math.sin(angle) * speed, 3, nil,
+            SandParticle)
     end
 end
 
