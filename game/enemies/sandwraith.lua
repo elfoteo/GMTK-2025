@@ -259,13 +259,25 @@ end
 -- Shoots a wave of sand particles at the player.
 -- @param player Player The player to target.
 function SandWraith:shootSandWave(player)
+    local ps_emit = self.scene.particleSystem.emit
+    local base_x = self.x + (self.hitboxW / 2) * self.direction
+    local base_y = self.y
+    local hitboxH = self.hitboxH
+
     local angle_to_player = math.atan2(player.y - self.y, player.x - self.x)
-    for _ = 1, 2000 do -- Increased sand amount
-        local angle = angle_to_player + math.random() * 0.4 - 0.2
+
+    for _ = 1, 500 do -- Increased sand amount
+        -- Random angle variation (-0.2 to 0.2)
+        local angle = angle_to_player + (math.random() * 0.4 - 0.2)
         local speed = math.random(150, 250)
-        self.scene.particleSystem:emit(self.x + self.hitboxW / 2 * self.direction, self.y - self.hitboxH * math.random(),
-            math.cos(angle) * speed, math.sin(angle) * speed, 3, nil,
-            SandParticle)
+
+        local dx = math.cos(angle) * speed
+        local dy = math.sin(angle) * speed
+
+        -- Random vertical offset
+        local spawn_y = base_y - (hitboxH * math.random())
+
+        ps_emit(self.scene.particleSystem, base_x, spawn_y, dx, dy, 3, nil, SandParticle)
     end
 end
 

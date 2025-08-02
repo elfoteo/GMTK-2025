@@ -19,10 +19,11 @@ end
 ---Update all particles and remove dead ones.
 ---@param self ParticleSystem
 ---@param dt   number Time elapsed since last update (seconds).
-function ParticleSystem:update(dt)
+---@param player Player
+function ParticleSystem:update(dt, player)
     for i = #self.particles, 1, -1 do
         local p = self.particles[i]
-        p:update(dt, self.tilemap)
+        p:update(dt, self.tilemap, player)
         if p:isDead() then
             table.remove(self.particles, i)
         end

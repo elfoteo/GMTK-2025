@@ -4,6 +4,7 @@ local PhysicsParticle = require("engine.particles.physics_particle")
 ---@field color number[]
 ---@field initial_lifetime number
 ---@field lifetime number
+---@field damage number
 local SandParticle = setmetatable({}, { __index = PhysicsParticle })
 SandParticle.__index = SandParticle
 
@@ -29,6 +30,7 @@ function SandParticle.new(x, y, vx, vy, lifetime)
     self.radius = 1
     self.bounciness = 0.1
     self.gravity = 100
+    self.damage = 0.001 -- very low damage per particle
 
     self.color = SAND_COLORS[math.random(#SAND_COLORS)]
     self.initial_lifetime = lifetime
@@ -39,11 +41,24 @@ end
 ---Update physics and lifetime
 ---@param dt number
 ---@param tilemap TileMap
-function SandParticle:update(dt, tilemap)
+---@param player Player
+function SandParticle:update(dt, tilemap, player)
     PhysicsParticle.update(self, dt, tilemap)
 
     -- Decrement lifetime
     self.lifetime = self.lifetime - dt
+
+    if player and not player.is_dead and self:checkCollision(player) then
+        player:take_damage(self.damage, self)
+        self.lifetime = 0 -- Mark for removal
+    end
+end
+
+function SandParticle:checkCollision(other)
+    local hw, hh = self.radius, self.radius
+    local ohw, ohh = other.hitboxW / 2, other.hitboxH / 2
+    return (self.x - hw) < (other.x + ohw) and (self.x + hw) > (other.x - ohw) and (self.y - hh) < (other.y + ohh) and
+        (self.y + hh) > (other.y - ohh)
 end
 
 function SandParticle:draw()

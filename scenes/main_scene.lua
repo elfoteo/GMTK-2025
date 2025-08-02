@@ -275,7 +275,7 @@ function MainScene:update(dt)
     end
 
     -- particles & camera follow
-    self.particleSystem:update(dt)
+    self.particleSystem:update(dt, self.player)
     self.tilemap:update(dt)
     self.camera:follow(
         self.player.x, self.player.y,
