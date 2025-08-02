@@ -116,6 +116,9 @@ function TileMap:loadFromTiled(filename)
                 if tile_data.properties and tile_data.properties.collectible ~= nil then
                     tile_properties[gid].collectible = tile_data.properties.collectible
                 end
+                if tile_data.properties and tile_data.properties.text ~= nil then
+                    tile_properties[gid].text = tile_data.properties.text
+                end
                 if tile_data.properties and tile_data.properties.climbable ~= nil then
                     tile_properties[gid].climbable = tile_data.properties.climbable
                 end
@@ -163,7 +166,8 @@ function TileMap:loadFromTiled(filename)
                                     self.collectible_spawns[string.format("%d;%d", chunk.x + x, chunk.y + y)] = {
                                         tile_x = chunk.x + x,
                                         tile_y = chunk.y + y,
-                                        type = tile_properties[tile_gid].collectible
+                                        type = tile_properties[tile_gid].collectible,
+                                        text = tile_properties[tile_gid].text or ""
                                     }
 
                                     local grass_density_prop = tile_properties[tile_gid].grass_density

@@ -22,7 +22,7 @@ function MovementHandler:update(dt, level, player)
     if love.keyboard.isDown("w", "up") then dy = dy - 1 end
     if love.keyboard.isDown("s", "down") then dy = dy + 1 end
 
-    local jump_pressed = love.keyboard.isDown("space")
+    local jump_pressed = love.keyboard.isDown("space") or love.keyboard.isDown("w")
 
     local tile_top = level:getTileAtPixel(player.x, player.y)
     local tile_bottom = level:getTileAtPixel(player.x, player.y + player.hitboxH * 0.7)
@@ -142,3 +142,4 @@ function MovementHandler:keypressed(key, player)
 end
 
 return MovementHandler
+

@@ -39,7 +39,8 @@ function NoteUI:draw()
     love.graphics.printf(self.text, self.x + 45, self.y + 40, self.width - 60, "left")
 end
 
-function NoteUI:show()
+function NoteUI:show(text)
+    self.text = text
     self.active = true
 end
 

@@ -77,6 +77,7 @@ function MainScene.new()
     self.spawned_enemies        = {}
     self.ui                     = nil
     self.player_damage_cooldown = 0
+    self.enemy_projectiles      = {}
     return self
 end
 
@@ -87,10 +88,6 @@ function MainScene:load()
     -- mouse
     love.mouse.setVisible(false)
     love.mouse.setGrabbed(false)
-
-    -- ui
-    self.ui = UI.new(self)
-    self.ui.scene = self -- Pass the scene to the UI so it can access scene functions
 
     -- instruction images
     self.howtoMoveImage = love.graphics.newImage("assets/misc/howto-move.png")
@@ -105,6 +102,9 @@ function MainScene:load()
         "assets/font/font8x8_basic_8.fnt",
         "assets/font/font8x8_basic_8.png"
     )
+
+    -- ui
+    self.ui = UI.new(self)
 
     math.randomseed(os.time())
 
@@ -134,7 +134,7 @@ function MainScene:load()
         local collectible_x = spawn_point.tile_x * self.tilemap.tile_size + self.tilemap.tile_size / 2
         local collectible_y = spawn_point.tile_y * self.tilemap.tile_size + self.tilemap.tile_size / 2
         if spawn_point.type == "note" then
-            self.collectibles[key] = Collectible.new(collectible_x, collectible_y, spawn_point.type)
+            self.collectibles[key] = Collectible.new(collectible_x, collectible_y, spawn_point.type, spawn_point.text)
         end
     end
     self.background = Background.new(self.camera, self, { 0.60, 0.22, 0.10, 1.0 },
@@ -143,15 +143,6 @@ function MainScene:load()
     self.score = 0
 
     self.camera:teleport(self.player.x, self.player.y)
-
-    self.note_ui = NoteUI.new(
-        (CANVAS_W - 300) / 2,
-        (CANVAS_H - 160) / 2,
-        300,
-        160,
-        "The bells ring for me no more. For you, there is a chance. Try your best, for even if you fail the hands of time will rewind.",
-        self.customFont8px
-    )
 end
 
 ---Handles the result of a bullet collision.
@@ -269,6 +260,19 @@ function MainScene:update(dt)
     self.player.combat_handler:update(dt, self.particleSystem, self.tilemap, self.enemies, world_min_x, world_max_x,
         world_min_y, world_max_y, self)
 
+    -- Update enemy projectiles
+    for i = #self.enemy_projectiles, 1, -1 do
+        local p = self.enemy_projectiles[i]
+        local hit_result = p:update(dt, self.particleSystem, self.tilemap, { { enemy = self.player } }, world_min_x,
+            world_max_x, world_min_y, world_max_y)
+        if hit_result then
+            if hit_result.type == "enemy" and hit_result.enemy == self.player then
+                self.player:take_damage(p.damage, p)
+            end
+            table.remove(self.enemy_projectiles, i)
+        end
+    end
+
     -- Collectible collision
     for key, collectible in pairs(self.collectibles) do
         collectible:update(dt, self.player)
@@ -339,6 +343,9 @@ function MainScene:draw()
     self.particleSystem:draw()
     self.player:draw()
     self.player.combat_handler:draw()
+    for _, p in ipairs(self.enemy_projectiles) do
+        p:draw()
+    end
     for _, enemy_data in ipairs(self.enemies) do
         if enemy_data.enemy then
             enemy_data.enemy:draw()
@@ -350,8 +357,6 @@ function MainScene:draw()
     -- Draw UI
     self.ui:draw()
 
-    self.note_ui:draw()
-
     love.graphics.setCanvas()
     love.graphics.setColor(1, 1, 1)
 
@@ -360,9 +365,9 @@ end
 
 ---Handle key presses.
 function MainScene:keypressed(key)
-    if self.note_ui.active then
+    if self.ui.note_ui.active then
         if key == "escape" or key == "e" or key == "q" then
-            self.note_ui:hide()
+            self.ui.note_ui:hide()
             self.game_frozen = false
         end
         return
@@ -378,8 +383,8 @@ function MainScene:keypressed(key)
     if key == "e" then
         for k, collectible in pairs(self.collectibles) do
             if collectible:checkPickupRange() then
+                self.ui.note_ui:show(collectible.text)
                 self.collectibles[k] = nil
-                self.note_ui:show()
                 self.game_frozen = true
                 break -- only pick up one at a time
             end

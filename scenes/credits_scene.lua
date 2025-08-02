@@ -26,9 +26,10 @@ function CreditsScene.new()
     )
 
     self.credits = {
-        { role = "Coder",      names = { "elfoteo" } },
-        { role = "Artist",     names = { "Khaos", "elfomarco" } },
-        { role = "Soundtrack", names = { "Khaos" } },
+        { role = "Coder",         names = { "elfoteo" } },
+        { role = "Artist",        names = { "Khaos", "elfomarco" } },
+        { role = "Soundtrack",    names = { "Khaos" } },
+        { role = "Game Designer", names = { "Klight" } },
     }
 
     self.particleSystem = ParticleSystem.new()

@@ -175,18 +175,18 @@ end
 --- Draws a health bar above the enemy if it has taken damage.
 function Enemy:draw_health_bar()
     if self.health < self.max_health then
-        local bar_width = 40
-        local bar_height = 5
+        local bar_width = 20
+        local bar_height = 3
         local bar_x = self.x - bar_width / 2
         local bar_y = self.y - self.hitboxH / 2 - 15
 
         -- Background
-        love.graphics.setColor(0.8, 0, 0, 0.7)
-        love.graphics.rectangle("fill", bar_x, bar_y, bar_width, bar_height)
+        love.graphics.setColor(0, 0, 0, 1)
+        love.graphics.rectangle("line", bar_x - 1, bar_y - 1, bar_width + 2, bar_height + 2)
 
         -- Foreground
         local health_percentage = self.health / self.max_health
-        love.graphics.setColor(0, 0.8, 0, 0.7)
+        love.graphics.setColor(1, 0, 0, 1)
         love.graphics.rectangle("fill", bar_x, bar_y, bar_width * health_percentage, bar_height)
 
         love.graphics.setColor(1, 1, 1, 1) -- Reset color

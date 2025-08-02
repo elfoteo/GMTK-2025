@@ -84,9 +84,6 @@ function Player:update(dt, level, particle_system)
 
     self.mana = math.min(100, self.mana + self.mana_regeneration_rate * dt)
 end
----@field touch_damage_cooldown number A cooldown to prevent taking damage every frame from the same source.
-local Player = setmetatable({}, { __index = Living })
-Player.__index = Player
 
 --- Creates a new Player instance.
 ---@param scene MainScene The main scene object that contains the player.

@@ -10,6 +10,7 @@
 ---@field promptImage love.Image
 ---@field promptTextBefore string
 ---@field promptTextAfter string
+---@field text string
 local Collectible = {}
 Collectible.__index = Collectible
 
@@ -17,12 +18,14 @@ Collectible.__index = Collectible
 ---@param x number The x-coordinate.
 ---@param y number The y-coordinate.
 ---@param type string The type of collectible (e.g., "note").
+---@param text string The text content of the note.
 ---@return Collectible
-function Collectible.new(x, y, type)
+function Collectible.new(x, y, type, text)
     local self = setmetatable({}, Collectible)
     self.x = x
     self.y = y
     self.type = type
+    self.text = text or ""
     self.image = love.graphics.newImage("assets/misc/note.png")
     self.width = self.image:getWidth()
     self.height = self.image:getHeight()

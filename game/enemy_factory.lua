@@ -9,7 +9,8 @@ local EnemyFactory = {}
 -- A mapping of enemy type names to their respective modules.
 local enemy_classes = {
     sandwraith = "game.enemies.sandwraith",
-    cogmauler = "game.enemies.cogmauler"
+    cogmauler = "game.enemies.cogmauler",
+    waiterbot = "game.enemies.waiterbot"
 }
 
 ---
