@@ -131,7 +131,6 @@ end
 ---@param oy? number The origin offset in the y-direction. Defaults to 0.
 function Animated:draw(x, y, r, sx, sy, ox, oy)
     if not self.current_state then return end
-    love.graphics.setColor(1, 1, 1, 1)
 
     local state = self.states[self.current_state]
     if not state or not state.images or #state.images == 0 then return end

@@ -57,7 +57,7 @@ function Player:update(dt, level, particle_system)
     local wasClimbing = self.isClimbing
 
     self.movement_handler:update(dt, level, self)
-    self.rewind_handler:update(dt, self)
+    self.rewind_handler:update(dt, self, particle_system)
     self.animation_handler:update(dt, self, wasClimbing, wasOnGround)
 
     self.scene.grassManager:apply_force({ x = self.x, y = self.y }, 8, 16)
@@ -65,12 +65,20 @@ function Player:update(dt, level, particle_system)
     self.mana = math.min(100, self.mana + self.mana_regeneration_rate * dt)
 end
 
-function Player:updateProjectiles(dt, particleSystem, tilemap, enemies, world_min_x, world_max_x, world_min_y, world_max_y)
-    self.combat_handler:update(dt, particleSystem, tilemap, enemies, world_min_x, world_max_x, world_min_y, world_max_y, self.scene)
+function Player:updateProjectiles(dt, particleSystem, tilemap, enemies, world_min_x, world_max_x, world_min_y,
+                                  world_max_y)
+    self.combat_handler:update(dt, particleSystem, tilemap, enemies, world_min_x, world_max_x, world_min_y, world_max_y,
+        self.scene)
 end
 
 function Player:draw()
+    if self.rewind_handler.is_rewinding then
+        love.graphics.setColor(1, 1, 1, 0.5)
+    else
+        love.graphics.setColor(1, 1, 1, 1)
+    end
     self.animation_handler:draw(self.x, self.y, self.direction, self.size)
+    love.graphics.setColor(1, 1, 1, 1)
 end
 
 function Player:drawProjectiles()
@@ -80,7 +88,8 @@ end
 function Player:checkCollision(other)
     local hw, hh = self.hitboxW / 2, self.hitboxH / 2
     local ohw, ohh = other.hitboxW / 2, other.hitboxH / 2
-    return (self.x - hw) < (other.x + ohw) and (self.x + hw) > (other.x - ohw) and (self.y - hh) < (other.y + ohh) and (self.y + hh) > (other.y - ohh)
+    return (self.x - hw) < (other.x + ohw) and (self.x + hw) > (other.x - ohw) and (self.y - hh) < (other.y + ohh) and
+        (self.y + hh) > (other.y - ohh)
 end
 
 function Player:keypressed(key)
