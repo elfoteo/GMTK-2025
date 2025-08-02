@@ -9,14 +9,14 @@
     "fileStates": {
         "": {
             "scaleInDock": 1,
-            "scaleInEditor": 5.5
+            "scaleInEditor": 4
         },
         "map.tmx": {
-            "scale": 2,
-            "selectedLayer": 0,
+            "scale": 3,
+            "selectedLayer": 1,
             "viewCenter": {
-                "x": 370.25,
-                "y": 39
+                "x": 143.33333333333331,
+                "y": -53.166666666666686
             }
         },
         "map.tmx#tilemap": {
@@ -47,6 +47,7 @@
     "project": "untitled.tiled-project",
     "property.type": "bool",
     "recentFiles": [
+        "map.tmx",
         "map_flight.tmx"
     ],
     "tileset.embedInMap": true,

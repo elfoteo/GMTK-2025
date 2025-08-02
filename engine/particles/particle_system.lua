@@ -87,4 +87,25 @@ function ParticleSystem:emitCone(x, y, angle, spread, count, speedRange, lifeRan
     end
 end
 
+---Emit a burst of particles in all directions.
+---@param self         ParticleSystem
+---@param x            number      X coordinate.
+---@param y            number      Y coordinate.
+---@param count        number      Number of particles.
+---@param speedRange   Range2      {minSpeed, maxSpeed}.
+---@param lifeRange    Range2      {minLifetime, maxLifetime}.
+---@param color?       RGBAColor   Optional RGBA color.
+---@param particleType? SparkParticle Optional particle class.
+---@param size?        number      Optional size (radius).
+function ParticleSystem:emitBurst(x, y, count, speedRange, lifeRange, color, particleType, size)
+    for _ = 1, count do
+        local angle = math.random() * 2 * math.pi
+        local speed = speedRange[1] + math.random() * (speedRange[2] - speedRange[1])
+        local life = lifeRange[1] + math.random() * (lifeRange[2] - lifeRange[1])
+        local vx = math.cos(angle) * speed
+        local vy = math.sin(angle) * speed
+        self:emit(x, y, vx, vy, life, color, particleType, size)
+    end
+end
+
 return ParticleSystem
