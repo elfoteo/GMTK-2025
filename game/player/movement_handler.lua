@@ -4,6 +4,8 @@ local GRAVITY = 450
 local JUMP_FORCE = -180
 
 function MovementHandler:update(dt, level, player)
+    if player.rewind_handler.is_rewinding then return end
+
     local dx = 0
     if love.keyboard.isDown("a", "left") then dx = dx - 1 end
     if love.keyboard.isDown("d", "right") then dx = dx + 1 end
@@ -14,7 +16,6 @@ function MovementHandler:update(dt, level, player)
 
     local jump_pressed = love.keyboard.isDown("space")
 
-    local wasClimbing = player.isClimbing
     local tile_top = level:getTileAtPixel(player.x, player.y)
     local tile_bottom = level:getTileAtPixel(player.x, player.y + player.hitboxH * 0.7)
     local onClimbable = (tile_top and tile_top.climbable) or (tile_bottom and tile_bottom.climbable)

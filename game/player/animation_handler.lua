@@ -69,6 +69,10 @@ function AnimationHandler:new(player)
 end
 
 function AnimationHandler:update(dt, player, wasClimbing, wasOnGround)
+    if player.rewind_handler.is_rewinding then
+        self.animation:update(dt)
+        return
+    end
     self.animation:update(dt)
 
     local dx = 0
