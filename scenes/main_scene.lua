@@ -160,6 +160,12 @@ function MainScene:handleBulletCollision(hitResult, projectile)
         local enemy_data = hitResult.enemy_data
         local enemy = enemy_data.enemy
         enemy:take_damage(projectile.damage, projectile)
+        self.particleSystem:emitCone(
+            (hitResult.enemy.x + projectile.x) / 2, (hitResult.enemy.y + projectile.y) / 2,
+            math.atan2(-projectile.vy, -projectile.vx),
+            1.5, 15, { 40, 90 }, { 0.3, 0.6 },
+            {1, 1, 1}, SparkParticle, 0.6
+        )
         if enemy.health <= 0 then
             self.score = self.score + 1
             for _ = 1, 30 do

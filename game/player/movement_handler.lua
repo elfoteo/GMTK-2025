@@ -81,9 +81,13 @@ function MovementHandler:update(dt, level, player)
 
     -- Horizontal movement and collision
     if not player.isClimbing then
-        player.x = player.x + dx * player.speed * dt
-        if dx ~= 0 and level:checkCollision(player.x - halfW, player.y - halfH, player.hitboxW, player.hitboxH) then
+        local total_vx = dx * player.speed + player.dash_vx
+        player.x = player.x + total_vx * dt
+
+        if level:checkCollision(player.x - halfW, player.y - halfH, player.hitboxW, player.hitboxH) then
             player.x = oldX
+            player.dash_vx = 0
+            player.is_dashing = false
         end
     end
 

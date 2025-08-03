@@ -156,7 +156,7 @@ end
 -- @param player Player The player object.
 -- @param distance_to_player number The current distance to the player.
 function Cogmauler:chase_state(dt, player, distance_to_player)
-    if distance_to_player < ATTACK_RANGE then
+    if distance_to_player < ATTACK_RANGE and math.abs(player.y - self.y) < 50 then
         -- In attack range
         if self.attack_timer <= 0 then
             -- Ready to attack

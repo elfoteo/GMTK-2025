@@ -211,7 +211,7 @@ function SandWraith:ai(dt, player)
         end
         -- States: Wandering or Engaging
     else
-        if distanceToPlayer > self.detectionRange then
+        if distanceToPlayer > self.detectionRange or math.abs(player.y - self.y) > 50 then
             self.aiState = "wandering"
             self:wander(dt)
         else -- in detection range

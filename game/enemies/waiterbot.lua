@@ -72,11 +72,11 @@ function WaiterBot:ai(dt, player)
 
     -- State transitions with hysteresis
     if self.ai_state == "patrol" then
-        if distance_to_player <= self.detection_range and self.on_ground then
+        if distance_to_player <= self.detection_range and self.on_ground and math.abs(player.y - self.y) < 50 then
             self.ai_state = "attack"
         end
     elseif self.ai_state == "attack" then
-        if distance_to_player > self.disengage_range then
+        if distance_to_player > self.disengage_range or math.abs(player.y - self.y) > 100 then
             self.ai_state = "patrol"
         end
     end

@@ -99,7 +99,7 @@ end
 
 function Camera:attach()
     love.graphics.push()
-    love.graphics.translate(math.floor(-self.x + self.shakeX + self.recoilX), math.floor(-self.y + self.shakeY + self.recoilY))
+    love.graphics.translate(-self.x + self.shakeX + self.recoilX, -self.y + self.shakeY + self.recoilY)
 end
 
 function Camera:detach()

@@ -312,6 +312,9 @@ end
 function TileMap:draw(camera, canvas_w, canvas_h)
     love.graphics.setColor(1, 1, 1)
 
+    local cam_x = math.floor(camera.x)
+    local cam_y = math.floor(camera.y)
+
     -- Draw image layers
     for _, layer in ipairs(self.image_layers) do
         love.graphics.setColor(1, 1, 1, layer.opacity)
@@ -320,24 +323,24 @@ function TileMap:draw(camera, canvas_w, canvas_h)
             -- For repeating layers, we draw them filling the screen, but offset the source quad
             -- to simulate parallax scrolling. The layer is drawn at the camera's position
             -- so it stays fixed to the screen.
-            local quad_x = camera.x * layer.parallaxx - layer.x
-            local quad_y = camera.y * layer.parallaxy - layer.y
+            local quad_x = cam_x * layer.parallaxx - layer.x
+            local quad_y = cam_y * layer.parallaxy - layer.y
             local quad_w = canvas_w
             local quad_h = canvas_h
             local quad = love.graphics.newQuad(quad_x, quad_y, quad_w, quad_h, layer.image:getDimensions())
-            love.graphics.draw(layer.image, quad, camera.x, camera.y)
+            love.graphics.draw(layer.image, quad, cam_x, cam_y)
         else
             -- For non-repeating layers, we calculate their world position based on parallax
             -- and draw them. The camera transform handles the rest.
-            local x = layer.x + camera.x * (1 - layer.parallaxx)
-            local y = layer.y + camera.y * (1 - layer.parallaxy)
+            local x = layer.x + cam_x * (1 - layer.parallaxx)
+            local y = layer.y + cam_y * (1 - layer.parallaxy)
             love.graphics.draw(layer.image, x, y)
         end
     end
     love.graphics.setColor(1, 1, 1)
 
-    local start_tile_x = math.floor(camera.x / self.tile_size)
-    local start_tile_y = math.floor(camera.y / self.tile_size)
+    local start_tile_x = math.floor(cam_x / self.tile_size)
+    local start_tile_y = math.floor(cam_y / self.tile_size)
     local end_tile_x   = start_tile_x + math.ceil(canvas_w / self.tile_size) + 1
     local end_tile_y   = start_tile_y + math.ceil(canvas_h / self.tile_size) + 1
 

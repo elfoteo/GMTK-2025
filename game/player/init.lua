@@ -4,6 +4,7 @@ local CombatHandler = require("game.player.combat_handler")
 local MovementHandler = require("game.player.movement_handler")
 local RewindHandler = require("game.player.rewind_handler")
 local SceneManager = require("engine.scene_manager")
+local SparkParticle = require("engine.particles.spark_particle")
 
 --- The main player character.
 --- This class is responsible for managing the player's state, including movement,
@@ -18,6 +19,7 @@ local SceneManager = require("engine.scene_manager")
 ---@field hitboxH number The height of the player's collision hitbox.
 ---@field vx number The player's current velocity on the x-axis.
 ---@field vy number The player's current velocity on the y-axis.
+---@field dash_vx number The player's current dash velocity on the x-axis.
 ---@field onGround boolean True if the player is currently standing on solid ground.
 ---@field isClimbing boolean True if the player is currently on a climbable surface.
 ---@field direction number The direction the player is facing (1 for right, -1 for left).
@@ -45,6 +47,7 @@ function Player.new(scene, x, y, speed)
     setmetatable(p, Player)
     ---@cast p Player
     p.vx, p.vy = 0, 0
+    p.dash_vx = 0
     p.onGround = false
     p.isClimbing = false
     p.size = 26
@@ -56,57 +59,11 @@ function Player.new(scene, x, y, speed)
     p.mana = 0
     p.mana_regeneration_rate = 10 -- Mana per second
     p.touch_damage_cooldown = 0
-
-    p.animation_handler = AnimationHandler:new(p)
-    p.combat_handler = CombatHandler:new()
-    p.movement_handler = MovementHandler
-    p.rewind_handler = RewindHandler:new()
-
-    return p
-end
-
---- Updates the player's state for the current frame.
---- This calls the update methods of all the player's handlers.
----@param dt number The time elapsed since the last frame (delta time).
----@param level TileMap The level's tilemap for collision detection.
----@param particle_system ParticleSystem The main particle system for creating effects.
-function Player:update(dt, level, particle_system)
-    local wasOnGround = self.onGround
-    local wasClimbing = self.isClimbing
-
-    p.touch_damage_cooldown = math.max(0, p.touch_damage_cooldown - dt)
-
-    self.movement_handler:update(dt, level, self)
-    self.rewind_handler:update(dt, self, particle_system)
-    self.animation_handler:update(dt, self, wasClimbing, wasOnGround)
-
-    self.scene.grassManager:apply_force({ x = self.x, y = self.y }, 8, 16)
-
-    self.mana = math.min(100, self.mana + self.mana_regeneration_rate * dt)
-end
-
---- Creates a new Player instance.
----@param scene MainScene The main scene object that contains the player.
----@param x number The initial x-coordinate for the player.
----@param y number The initial y-coordinate for the player.
----@param speed number The movement speed for the player.
----@return Player The new player instance.
-function Player.new(scene, x, y, speed)
-    local p = Living.new(scene, x, y, speed)
-    setmetatable(p, Player)
-    ---@cast p Player
-    p.vx, p.vy = 0, 0
-    p.onGround = false
-    p.isClimbing = false
-    p.size = 26
-    p.hitboxW, p.hitboxH = 16, 26
-    p.direction = 1
-    p.lastDownPressTime = 0
-    p.dropThrough = false
-    p.fall_distance = 0
-    p.mana = 0
-    p.mana_regeneration_rate = 10 -- Mana per second
-    p.touch_damage_cooldown = 0
+    p.is_dashing = false
+    p.dash_timer = 0
+    p.dash_direction = 0
+    p.dash_speed = 400
+    p.dash_cost = 10
 
     p.animation_handler = AnimationHandler:new(p)
     p.combat_handler = CombatHandler:new()
@@ -127,6 +84,7 @@ function Player:update(dt, level, particle_system)
 
     self.touch_damage_cooldown = math.max(0, self.touch_damage_cooldown - dt)
 
+    self:update_dash(dt, particle_system)
     self.movement_handler:update(dt, level, self)
     self.rewind_handler:update(dt, self, particle_system)
     self.animation_handler:update(dt, self, wasClimbing, wasOnGround)
@@ -134,6 +92,28 @@ function Player:update(dt, level, particle_system)
     self.scene.grassManager:apply_force({ x = self.x, y = self.y }, 8, 16)
 
     self.mana = math.min(100, self.mana + self.mana_regeneration_rate * dt)
+end
+
+function Player:update_dash(dt, particle_system)
+    if self.is_dashing then
+        self.dash_timer = self.dash_timer - dt
+        local dash_decay = (self.dash_timer / 0.2) -- a 0-1 value
+        self.dash_vx = self.dash_speed * self.dash_direction * dash_decay
+
+        -- Emit particles throughout the dash
+        local particle_angle = (self.dash_direction == 1) and math.pi or 0
+        particle_system:emitCone(
+            self.x, self.y,
+            particle_angle,
+            0.4, 2, { 50, 100 }, { 0.1, 0.3 },
+            {1, 1, 1}, SparkParticle, 0.6
+        )
+
+        if self.dash_timer <= 0 then
+            self.is_dashing = false
+            self.dash_vx = 0
+        end
+    end
 end
 
 --- Inflicts damage on the player and checks for death.
@@ -191,6 +171,12 @@ end
 --- Handles key press events for the player.
 ---@param key string The key that was pressed.
 function Player:keypressed(key)
+    if (key == "lshift" or key == "rshift") and self.mana >= self.dash_cost and not self.is_dashing then
+        self.mana = self.mana - self.dash_cost
+        self.is_dashing = true
+        self.dash_timer = 0.2
+        self.dash_direction = self.direction
+    end
     self.movement_handler:keypressed(key, self)
     self.rewind_handler:keypressed(key, self)
 end
