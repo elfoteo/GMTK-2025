@@ -54,10 +54,11 @@ function WaiterBot.new(scene, x, y)
     self.ai_state = "patrol"
     self.idle_timer = 0
     self.attack_timer = 0
+    self.cutlery_phase = 0
     self.detection_range = 150
     self.disengage_range = 200 -- Hysteresis: Must be larger than detection_range
-    self.optimal_distance = 100
-    self.reposition_buffer = 20
+    self.optimal_distance = 50
+    self.reposition_buffer = 100
 
     return self
 end
@@ -132,10 +133,17 @@ function WaiterBot:ai(dt, player)
             self.direction = player.x > self.x and 1 or -1
 
             self.attack_timer = self.attack_timer - dt
+
             if self.attack_timer <= 0 then
-                self.animation:set_state("attack")
-                self.attack_timer = math.random(1, 2)
-                self:throw_cutlery(player)
+                if self.cutlery_phase < 3 then
+                    self.animation:set_state("attack")
+                    self:throw_cutlery(player)
+                    self.cutlery_phase = self.cutlery_phase + 1
+                    self.attack_timer = 0.1 -- short delay between throws
+                else
+                    self.cutlery_phase = 0
+                    self.attack_timer = 1.5 -- cooldown after 3 throws
+                end
             else
                 if self.animation.is_finished then
                     self.animation:set_state("idle")
@@ -148,8 +156,8 @@ function WaiterBot:ai(dt, player)
 end
 
 function WaiterBot:throw_cutlery(player)
-    local speed = 200
-    local gravity = 30 -- Must match projectile gravity
+    local speed = 400
+    local gravity = -90 -- Must match projectile gravity
     local dx = player.x - self.x
     local dy = player.y - self.y
 

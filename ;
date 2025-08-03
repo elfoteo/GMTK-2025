@@ -80,54 +80,29 @@ function AnimationHandler:new(player)
 
     for state_name, state_data in pairs(handler.animation.states) do
         handler.clock_hand_centers[state_name] = {}
-
-        if state_data.path_pattern and state_data.frames then
-            for i = 1, state_data.frames do
-                local frame_number
-                if state_data.reversed_pattern then
-                    frame_number = state_data.frames - i + 1
-                else
-                    frame_number = i
-                end
-                local path = string.format(state_data.path_pattern, frame_number)
-
-                local success, imageData = pcall(love.image.newImageData, path)
-
-                if success and imageData then
-                    local w, h = imageData:getDimensions()
-                    for y = 0, h - 1 do
-                        for x = 0, w - 1 do
-                            local r, g, b, a = imageData:getPixel(x, y)
-                            if math.abs(r - 0) < 0.001 and math.abs(g - 2 / 255) < 0.001 and math.abs(b - 21 / 255) < 0.001 then
-                                handler.clock_hand_centers[state_name][i] = { x = x, y = y }
-                                if not handler.clock_hand_color then
-                                    handler.clock_hand_color = { r, g, b, a }
-                                end
-                                goto next_image
-                            end
-                        end
-                    end
-                    ::next_image::
-                end
-            end
-        elseif state_name == "climb_idle" then
-            local path = "assets/entities/player-climbing1.png"
-            local success, imageData = pcall(love.image.newImageData, path)
-            if success and imageData then
+        print(state_name)
+        if state_data.images_data then
+            for i, imageData in ipairs(state_data.images_data) do
                 local w, h = imageData:getDimensions()
                 for y = 0, h - 1 do
                     for x = 0, w - 1 do
                         local r, g, b, a = imageData:getPixel(x, y)
-                        if math.abs(r - 0) < 0.001 and math.abs(g - 2 / 255) < 0.001 and math.abs(b - 21 / 255) < 0.001 then
-                            handler.clock_hand_centers[state_name][1] = { x = x, y = y }
+                        if math.abs(r - 0) < 0.001
+                            and math.abs(g - 2 / 255) < 0.001
+                            and math.abs(b - 21 / 255) < 0.001
+                        then
+                            -- record the first matching pixel as the clock-hand center:
+                            handler.clock_hand_centers[state_name][i] = { x = x, y = y }
                             if not handler.clock_hand_color then
                                 handler.clock_hand_color = { r, g, b, a }
                             end
-                            goto next_climb_image
+                            -- break out of both loops once found:
+                            x = w -- force inner loop to end
+                            y = h -- force outer loop to end
+                            print("x: ", x, "y: ", y, ":", r, g, b)
                         end
                     end
                 end
-                ::next_climb_image::
             end
         end
     end

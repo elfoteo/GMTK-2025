@@ -10,6 +10,7 @@ local CustomFont = require("engine.custom_font")
 local Collectible = require("game.collectible")
 local NoteUI = require("game.note_ui")
 local UI = require("engine.ui.ui")
+local HealthFountain = require("game.health_fountain")
 
 
 local EnemyDeathParticle = require("engine.particles.enemy_death_particle")
@@ -28,7 +29,7 @@ local CANVAS_W, CANVAS_H = 384, 216
 ---@field particleSystem ParticleSystem
 ---@field background Background
 ---@field collectibles table<string, Collectible>
----@field score number
+---@field health_fountains table<string, HealthFountain>
 ---@field howtoMoveImage any
 ---@field howtoShootImage any
 ---@field showMoveInstruction boolean
@@ -60,7 +61,7 @@ function MainScene.new()
     self.enemies                = {}
     self.background             = nil
     self.collectibles           = {}
-    self.score                  = 0
+    self.health_fountains       = {}
     self.howtoMoveImage         = nil
     self.howtoShootImage        = nil
     self.showMoveInstruction    = true
@@ -137,10 +138,13 @@ function MainScene:load()
             self.collectibles[key] = Collectible.new(collectible_x, collectible_y, spawn_point.type, spawn_point.text)
         end
     end
+    for key, spawn_point in pairs(self.tilemap.health_fountain_spawns) do
+        local fountain_x = spawn_point.tile_x * self.tilemap.tile_size + self.tilemap.tile_size / 2
+        local fountain_y = spawn_point.tile_y * self.tilemap.tile_size + self.tilemap.tile_size / 2
+        self.health_fountains[key] = HealthFountain.new(fountain_x, fountain_y)
+    end
     self.background = Background.new(self.camera, self, { 0.60, 0.22, 0.10, 1.0 },
         { 0.84, 0.68, 0.38, 1.0 })
-
-    self.score = 0
 
     self.camera:teleport(self.player.x, self.player.y)
 end
@@ -167,7 +171,6 @@ function MainScene:handleBulletCollision(hitResult, projectile)
             {1, 1, 1}, SparkParticle, 0.6
         )
         if enemy.health <= 0 then
-            self.score = self.score + 1
             for _ = 1, 30 do
                 local x = enemy.x + math.random(-enemy.hitboxW / 2, enemy.hitboxW / 2)
                 local y = enemy.y + math.random(-enemy.hitboxH / 2, enemy.hitboxH / 2)
@@ -284,6 +287,10 @@ function MainScene:update(dt)
         collectible:update(dt, self.player)
     end
 
+    for key, fountain in pairs(self.health_fountains) do
+        fountain:update(dt, self.player, self.particleSystem)
+    end
+
     -- particles & camera follow
     self.particleSystem:update(dt, self.player)
     self.tilemap:update(dt)
@@ -332,6 +339,10 @@ function MainScene:draw()
     -- Draw collectibles
     for _, collectible in pairs(self.collectibles) do
         collectible:draw(self.customFont8px)
+    end
+
+    for _, fountain in pairs(self.health_fountains) do
+        fountain:draw(self.customFont8px)
     end
 
     -- Draw instructions in world space
@@ -393,6 +404,14 @@ function MainScene:keypressed(key)
                 self.collectibles[k] = nil
                 self.game_frozen = true
                 break -- only pick up one at a time
+            end
+        end
+
+        for k, fountain in pairs(self.health_fountains) do
+            if fountain:checkInteractionRange() then
+                self.player:startHealing(1.5)
+                fountain:use()
+                break
             end
         end
     end

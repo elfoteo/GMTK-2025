@@ -63,7 +63,10 @@ function Player.new(scene, x, y, speed)
     p.dash_timer = 0
     p.dash_direction = 0
     p.dash_speed = 400
-    p.dash_cost = 10
+    p.dash_cost = 5
+    p.is_healing = false
+    p.healing_timer = 0
+    p.levitation_offset = 0
 
     p.animation_handler = AnimationHandler:new(p)
     p.combat_handler = CombatHandler:new()
@@ -79,6 +82,11 @@ end
 ---@param level TileMap The level's tilemap for collision detection.
 ---@param particle_system ParticleSystem The main particle system for creating effects.
 function Player:update(dt, level, particle_system)
+    if self.is_healing then
+        self:update_healing(dt, particle_system)
+        return -- Block other updates while healing
+    end
+
     local wasOnGround = self.onGround
     local wasClimbing = self.isClimbing
 
@@ -94,6 +102,74 @@ function Player:update(dt, level, particle_system)
     self.mana = math.min(100, self.mana + self.mana_regeneration_rate * dt)
 end
 
+function Player:heal(amount)
+    self.health = math.min(100, self.health + amount)
+end
+
+function Player:startHealing(duration)
+    if not self.is_healing then
+        self.is_healing = true
+        self.healing_timer = duration
+    end
+end
+
+function Player:update_healing(dt, particle_system)
+    if self.is_healing then
+        self.healing_timer = self.healing_timer - dt
+        self.vx = 0 -- Stop horizontal movement
+        self.vy = 0 -- Stop vertical movement
+
+        -- Heal the player gradually
+        local health_to_restore = (100 / 1.5) * dt -- Assuming max health is 100 and duration is 1.5s
+        self:heal(health_to_restore)
+
+        -- Levitation logic
+        local levitation_duration = 0.3
+        local total_duration = 1.5
+        local max_levitation = -5 -- Negative is up
+        if self.healing_timer > total_duration - levitation_duration then
+            -- Going up
+            local progress = (total_duration - self.healing_timer) / levitation_duration
+            self.levitation_offset = progress * max_levitation
+        elseif self.healing_timer < levitation_duration then
+            -- Going down
+            local progress = self.healing_timer / levitation_duration
+            self.levitation_offset = progress * max_levitation
+        else
+            -- Fully levitating
+            self.levitation_offset = max_levitation
+        end
+
+        -- UI Fade
+        local fade_duration = 0.1
+        if self.healing_timer > total_duration - fade_duration then
+            self.scene.ui.alpha = (total_duration - self.healing_timer) / fade_duration
+        elseif self.healing_timer < fade_duration then
+            self.scene.ui.alpha = 1 - (self.healing_timer / fade_duration)
+        else
+            self.scene.ui.alpha = 0
+        end
+        self.scene.ui.alpha = 1 - self.scene.ui.alpha -- Invert because we want to fade out
+
+        -- Emit orange spark particles in a circle
+        for _ = 1, 3 do
+            local angle = math.random() * 2 * math.pi
+            local speed = 20 + math.random() * 20 -- Reduced speed
+            local vx = math.cos(angle) * speed
+            local vy = math.sin(angle) * speed
+            local lifespan = 0.4 + math.random() * 0.4
+            particle_system:emit(self.x, self.y, vx, vy, lifespan, { 1, 0.5, 0 }, SparkParticle, 0.5) -- Reduced size
+        end
+
+        if self.healing_timer <= 0 then
+            self.is_healing = false
+            self.health = 100          -- Ensure health is full at the end
+            self.scene.ui.alpha = 1    -- Restore UI alpha
+            self.levitation_offset = 0 -- Reset levitation
+        end
+    end
+end
+
 function Player:update_dash(dt, particle_system)
     if self.is_dashing then
         self.dash_timer = self.dash_timer - dt
@@ -101,13 +177,16 @@ function Player:update_dash(dt, particle_system)
         self.dash_vx = self.dash_speed * self.dash_direction * dash_decay
 
         -- Emit particles throughout the dash
-        local particle_angle = (self.dash_direction == 1) and math.pi or 0
-        particle_system:emitCone(
-            self.x, self.y,
-            particle_angle,
-            0.4, 2, { 50, 100 }, { 0.1, 0.3 },
-            {1, 1, 1}, SparkParticle, 0.6
-        )
+        local base_angle = (self.dash_direction == 1) and math.pi or 0
+        for _ = 1, 2 do
+            local y_pos = self.y - self.hitboxH / 2 + math.random() * self.hitboxH
+            local angle = base_angle + (math.random() - 0.5) * 0.8
+            local speed = 50 + math.random() * 50
+            local vx = math.cos(angle) * speed
+            local vy = math.sin(angle) * speed
+            local lifespan = 0.1 + math.random() * 0.2
+            particle_system:emit(self.x, y_pos, vx, vy, lifespan, { 1, 1, 1 }, SparkParticle, 0.6)
+        end
 
         if self.dash_timer <= 0 then
             self.is_dashing = false
@@ -149,7 +228,50 @@ function Player:draw()
     else
         love.graphics.setColor(1, 1, 1, 1)
     end
-    self.animation_handler:draw(self.x, self.y, self.direction, self.size)
+    self.animation_handler:draw(self.x, self.y + self.levitation_offset, self.direction, self.size)
+
+    local clock_hand_center = self.animation_handler:get_current_clock_hand_center()
+    if clock_hand_center then
+        local health_ratio = self.health / 100
+        local total_minutes_from_midnight = (1 - health_ratio) * 12 * 60
+        local hours = math.floor(total_minutes_from_midnight / 60)
+        local minutes = total_minutes_from_midnight % 60
+
+        local minute_hand_angle = (minutes / 60) * 2 * math.pi - math.pi / 2
+        local hour_hand_angle = ((hours % 12 + minutes / 60) / 12) * 2 * math.pi - math.pi / 2
+
+        local center_x = self.x - self.size / 2 + clock_hand_center.x
+        local center_y = self.y - self.size / 2 + clock_hand_center.y + self.levitation_offset
+
+        if self.animation_handler.clock_hand_color then
+            love.graphics.setColor(self.animation_handler.clock_hand_color)
+        end
+
+        -- Minute hand (longer)
+        local minute_hand_length = 7
+        local minute_dx = minute_hand_length * math.cos(minute_hand_angle)
+        local minute_dy = minute_hand_length * math.sin(minute_hand_angle)
+        local minute_points = {}
+        for i = 0, minute_hand_length do
+            local t = i / minute_hand_length
+            table.insert(minute_points, center_x + minute_dx * t)
+            table.insert(minute_points, center_y + minute_dy * t)
+        end
+        love.graphics.points(minute_points)
+
+        -- Hour hand (shorter)
+        local hour_hand_length = 5
+        local hour_dx = hour_hand_length * math.cos(hour_hand_angle)
+        local hour_dy = hour_hand_length * math.sin(hour_hand_angle)
+        local hour_points = {}
+        for i = 0, hour_hand_length do
+            local t = i / hour_hand_length
+            table.insert(hour_points, center_x + hour_dx * t)
+            table.insert(hour_points, center_y + hour_dy * t)
+        end
+        love.graphics.points(hour_points)
+    end
+
     love.graphics.setColor(1, 1, 1, 1)
 end
 
@@ -171,7 +293,7 @@ end
 --- Handles key press events for the player.
 ---@param key string The key that was pressed.
 function Player:keypressed(key)
-    if (key == "lshift" or key == "rshift") and self.mana >= self.dash_cost and not self.is_dashing then
+    if (key == "lshift" or key == "rshift") and self.mana >= self.dash_cost and not self.is_dashing and not self.isClimbing then
         self.mana = self.mana - self.dash_cost
         self.is_dashing = true
         self.dash_timer = 0.2

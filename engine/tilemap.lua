@@ -11,6 +11,7 @@ local WindManager = require("engine.wind_manager")
 ---@field player_spawn { tile_x: number, tile_y: number }
 ---@field enemy_spawns { tile_x: number, tile_y: number }[]
 ---@field collectible_spawns table<string, { tile_x: number, tile_y: number, type: string }>
+---@field health_fountain_spawns table<string, { tile_x: number, tile_y: number, used: boolean }>
 ---@field tile_grid table<string, Tile>  Hashmap for fast tile lookups (key: "x;y")
 ---@field particleSystem ParticleSystem
 ---@field wind_manager WindManager
@@ -33,19 +34,22 @@ end
 ---Creates a new, empty TileMap.
 ---@return TileMap
 function TileMap.new()
-    local tm              = setmetatable({}, TileMap)
-    tm.tiles              = {}
-    tm.image_layers       = {}
-    tm.tile_grid          = {}
-    tm.tile_size          = 0
-    tm.width              = 0
-    tm.height             = 0
-    tm.player_spawn       = { tile_x = 0, tile_y = 0 }
-    tm.enemy_spawns       = {}
-    tm.collectible_spawns = {}
-    tm.particleSystem     = nil
-    tm.wind_manager       = WindManager.new()
-    tm.grass_manager      = nil
+    local tm                  = setmetatable({}, TileMap)
+    tm.tiles                  = {}
+    tm.image_layers           = {}
+    tm.tile_grid              = {}
+    tm.tile_size              = 0
+    tm.width                  = 0
+    tm.height                 = 0
+    tm.player_spawn           = { tile_x = 0, tile_y = 0 }
+    tm.enemy_spawns           = {}
+    tm.collectible_spawns     = {}
+    tm.health_fountain_spawns = {}
+    tm.particleSystem         = nil
+    tm.wind_manager           = WindManager.new()
+    tm.grass_manager          = nil
+    tm.quads                  = {}
+    tm.tileset                = nil
     return tm
 end
 
@@ -125,6 +129,9 @@ function TileMap:loadFromTiled(filename)
                 if tile_data.properties and tile_data.properties.platform ~= nil then
                     tile_properties[gid].platform = tile_data.properties.platform
                 end
+                if tile_data.properties and tile_data.properties.health_fountain ~= nil then
+                    tile_properties[gid].health_fountain = tile_data.properties.health_fountain
+                end
             end
         end
 
@@ -169,31 +176,6 @@ function TileMap:loadFromTiled(filename)
                                         type = tile_properties[tile_gid].collectible,
                                         text = tile_properties[tile_gid].text or ""
                                     }
-
-                                    local grass_density_prop = tile_properties[tile_gid].grass_density
-                                    local grass_types_prop = tile_properties[tile_gid].grass_types
-
-                                    if grass_density_prop or grass_types_prop then
-                                        local final_density = 5                     -- Default density
-                                        local final_grass_types = { 1, 2, 3, 4, 5 } -- Default types
-
-                                        if type(grass_density_prop) == "number" then
-                                            final_density = grass_density_prop
-                                        end
-
-                                        if type(grass_types_prop) == "string" then
-                                            local parsed_types = parse_grass_string(grass_types_prop)
-                                            if #parsed_types > 0 then
-                                                final_grass_types = parsed_types
-                                            end
-                                        end
-
-                                        if final_density > 0 then -- Only place grass if density is positive
-                                            self.grass_manager:place_tile({ x = chunk.x + x, y = chunk.y + y },
-                                                final_density,
-                                                final_grass_types)
-                                        end
-                                    end
                                 else
                                     local quad = quads[tile_gid]
                                     if quad then
@@ -239,6 +221,13 @@ function TileMap:loadFromTiled(filename)
                                             end
                                         end
                                     end
+                                end
+                                if tile_properties[tile_gid] and tile_properties[tile_gid].health_fountain then
+                                    self.health_fountain_spawns[string.format("%d;%d", chunk.x + x, chunk.y + y)] = {
+                                        tile_x = chunk.x + x,
+                                        tile_y = chunk.y + y,
+                                        used = false
+                                    }
                                 end
                             end
                         end
