@@ -229,6 +229,49 @@ function Player:draw()
         love.graphics.setColor(1, 1, 1, 1)
     end
     self.animation_handler:draw(self.x, self.y + self.levitation_offset, self.direction, self.size)
+
+    local clock_hand_center = self.animation_handler:get_current_clock_hand_center()
+    if clock_hand_center then
+        local health_ratio = self.health / 100
+        local total_minutes_from_midnight = (1 - health_ratio) * 12 * 60
+        local hours = math.floor(total_minutes_from_midnight / 60)
+        local minutes = total_minutes_from_midnight % 60
+
+        local minute_hand_angle = (minutes / 60) * 2 * math.pi - math.pi / 2
+        local hour_hand_angle = ((hours % 12 + minutes / 60) / 12) * 2 * math.pi - math.pi / 2
+
+        local center_x = self.x - self.size / 2 + clock_hand_center.x
+        local center_y = self.y - self.size / 2 + clock_hand_center.y + self.levitation_offset
+
+        if self.animation_handler.clock_hand_color then
+            love.graphics.setColor(self.animation_handler.clock_hand_color)
+        end
+
+        -- Minute hand (longer)
+        local minute_hand_length = 7
+        local minute_dx = minute_hand_length * math.cos(minute_hand_angle)
+        local minute_dy = minute_hand_length * math.sin(minute_hand_angle)
+        local minute_points = {}
+        for i = 0, minute_hand_length do
+            local t = i / minute_hand_length
+            table.insert(minute_points, center_x + minute_dx * t)
+            table.insert(minute_points, center_y + minute_dy * t)
+        end
+        love.graphics.points(minute_points)
+
+        -- Hour hand (shorter)
+        local hour_hand_length = 5
+        local hour_dx = hour_hand_length * math.cos(hour_hand_angle)
+        local hour_dy = hour_hand_length * math.sin(hour_hand_angle)
+        local hour_points = {}
+        for i = 0, hour_hand_length do
+            local t = i / hour_hand_length
+            table.insert(hour_points, center_x + hour_dx * t)
+            table.insert(hour_points, center_y + hour_dy * t)
+        end
+        love.graphics.points(hour_points)
+    end
+
     love.graphics.setColor(1, 1, 1, 1)
 end
 
