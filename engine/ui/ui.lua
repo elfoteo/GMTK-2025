@@ -32,14 +32,9 @@ function UI:draw()
     love.graphics.setColor(1, 1, 1, 1)
 
     local player = self.scene.player
-    local font8px = self.scene.customFont8px
-    local avg_fps = self.scene.avg_fps
 
     -- Draw Bars
     self.bars:draw(player.health / 100, player.mana / 100)
-
-    -- Draw Score and FPS
-    font8px:print("FPS: " .. math.floor(avg_fps), 4, 14, { 1, 1, 0, 1 })
 
     -- Draw Note UI
     self.note_ui:draw()

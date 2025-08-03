@@ -46,7 +46,7 @@ local RANGED_RANGE = 150
 
 local IDLE_WALK_WIDTH = 21
 local ATTACK_WIDTH = 64
-local ANIM_HEIGHT = 32
+local ANIM_HEIGHT = 25
 
 function PainterBoss.new(scene, x, y)
     local self = Enemy.new(scene, x, y, SPEED, 21, 32)
@@ -213,7 +213,7 @@ function PainterBoss:update(dt, player)
     else
         self.hitboxW = 21
         self.hitboxH = 25
-        self.hitboxOffsetY = 0
+        self.hitboxOffsetY = 3.5
     end
 
     self:ai(dt, player)
