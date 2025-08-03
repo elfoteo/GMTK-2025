@@ -93,6 +93,13 @@ function CombatHandler:mousepressed(x, y, button, player)
         player.animation_handler.animation:set_state("attack")
         local angle = math.atan2(y - 216 / 2, x - 384 / 2)
 
+        -- Turn player based on mouse position
+        if x < 384 / 2 then
+            player.direction = -1
+        else
+            player.direction = 1
+        end
+
         if shootTriple then
             local spread = math.rad(2)
             for _, a in ipairs({ angle - spread, angle, angle + spread }) do

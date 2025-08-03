@@ -202,6 +202,9 @@ function Player:update_dash(dt, particle_system)
 end
 
 function Player:take_damage(damage, source)
+    if self.is_dashing then
+        return -- Ignore damage while dashing
+    end
     Living.take_damage(self, damage)
     self.is_stunned = true
     self.stun_timer = 0.1

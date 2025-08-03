@@ -48,7 +48,7 @@ end
 ---@param world_min_y number The minimum y-coordinate of the world boundaries.
 ---@param world_max_y number The maximum y-coordinate of the world boundaries.
 ---@return table|nil A hit result if a collision occurred, otherwise nil.
-function ProjectileBase:update(dt, particleSystem, tilemap, enemies, world_min_x, world_max_x, world_min_y, world_max_y)
+function ProjectileBase:update(dt, particleSystem, tilemap, enemies, world_min_x, world_max_x, world_min_y, world_max_y, player)
     -- Update position
     self.x = self.x + self.vx * dt
     self.y = self.y + self.vy * dt
@@ -91,6 +91,9 @@ function ProjectileBase:update(dt, particleSystem, tilemap, enemies, world_min_x
             local et, eb = enemy_obj.y - enemy_obj.hitboxH / 2, enemy_obj.y + enemy_obj.hitboxH / 2
 
             if br > el and bl < er and bb > et and bt < eb then
+                if enemy_obj == player and player.is_dashing then
+                    return nil -- Ignore collision if player is dashing
+                end
                 return { type = "enemy", enemy = enemy_obj, enemy_data = enemy_data }
             end
         end

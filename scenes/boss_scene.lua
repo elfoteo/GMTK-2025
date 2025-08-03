@@ -265,12 +265,17 @@ function BossScene:update(dt)
     for i = #self.enemy_projectiles, 1, -1 do
         local p = self.enemy_projectiles[i]
         local hit_result = p:update(dt, self.particleSystem, self.tilemap, { { enemy = self.player } }, world_min_x,
-            world_max_x, world_min_y, world_max_y)
+            world_max_x, world_min_y, world_max_y, self.player)
         if hit_result then
             if hit_result.type == "enemy" and hit_result.enemy == self.player then
-                self.player:take_damage(p.damage, p)
+                -- Only take damage if not dashing
+                if not self.player.is_dashing then
+                    self.player:take_damage(p.damage, p)
+                    table.remove(self.enemy_projectiles, i)
+                end
+            else -- Hit a wall or other enemy
+                table.remove(self.enemy_projectiles, i)
             end
-            table.remove(self.enemy_projectiles, i)
         end
     end
 

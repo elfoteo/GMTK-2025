@@ -19,7 +19,7 @@ function SinePaintball.new(x, y, speed, angle, amplitude, frequency)
     return self
 end
 
-function SinePaintball:update(dt, particle_system, tilemap, enemies, world_min_x, world_max_x, world_min_y, world_max_y)
+function SinePaintball:update(dt, particle_system, tilemap, enemies, world_min_x, world_max_x, world_min_y, world_max_y, player)
     self.time = self.time + dt
 
     -- Calculate the oscillating perpendicular velocity component
@@ -35,7 +35,7 @@ function SinePaintball:update(dt, particle_system, tilemap, enemies, world_min_x
     self.vy = original_vy + wiggle_vy
 
     -- Let the base class handle the movement and collisions with the modified velocity
-    local hit_result = ProjectileBase.update(self, dt, particle_system, tilemap, enemies, world_min_x, world_max_x, world_min_y, world_max_y)
+    local hit_result = ProjectileBase.update(self, dt, particle_system, tilemap, enemies, world_min_x, world_max_x, world_min_y, world_max_y, player)
 
     -- Restore original velocity for next frame
     self.vx = original_vx
