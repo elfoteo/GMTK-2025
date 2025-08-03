@@ -34,7 +34,7 @@ function MainMenuScene.new()
     local button_width = 100
     local button_height = 20
     local button_spacing = 25
-    local num_buttons = love.system.getOS() == "Web" and 3 or 4
+    local num_buttons = love.system.getOS() == "Web" and 2 or 3
     local total_height = (button_height * num_buttons) + (button_spacing * (num_buttons - 1))
     local start_y = (CANVAS_H - total_height) / 2
     local start_x = (CANVAS_W - button_width) / 2
@@ -57,20 +57,7 @@ function MainMenuScene.new()
     )
     current_y = current_y + button_height + button_spacing
 
-    self.bossButton = StyledButton.new(
-        start_x,
-        current_y,
-        button_width,
-        button_height,
-        "Boss",
-        function()
-            SceneManager.gotoScene(BossSceneClass.new())
-        end,
-        self.customFont16px,
-        { 0.6, 0.6, 0.6, 1 },
-        self.particleSystem
-    )
-    current_y = current_y + button_height + button_spacing
+    
 
     self.creditsButton = StyledButton.new(
         start_x,
@@ -112,7 +99,7 @@ function MainMenuScene:update(dt)
     local cx, cy = self:toCanvas(mx, my)
 
     self.playButton:update(dt, cx, cy)
-    self.bossButton:update(dt, cx, cy)
+    
     self.creditsButton:update(dt, cx, cy)
     if self.quitButton then
         self.quitButton:update(dt, cx, cy)
@@ -125,7 +112,7 @@ function MainMenuScene:draw()
     love.graphics.clear(0, 0, 0, 1)
 
     self.playButton:draw()
-    self.bossButton:draw()
+    
     self.creditsButton:draw()
     if self.quitButton then
         self.quitButton:draw()
@@ -142,7 +129,7 @@ function MainMenuScene:mousepressed(x, y, button)
     local cx, cy = self:toCanvas(x, y)
     if button == 1 then
         self.playButton:mousepressed(button)
-        self.bossButton:mousepressed(button)
+        
         self.creditsButton:mousepressed(button)
         if self.quitButton then
             self.quitButton:mousepressed(button)
@@ -153,7 +140,7 @@ end
 function MainMenuScene:mousereleased(x, y, button)
     if button == 1 then
         self.playButton:mousereleased(button)
-        self.bossButton:mousereleased(button)
+        
         self.creditsButton:mousereleased(button)
         if self.quitButton then
             self.quitButton:mousereleased(button)

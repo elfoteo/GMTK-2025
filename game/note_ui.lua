@@ -46,6 +46,10 @@ function NoteUI:draw()
     end
 
     love.graphics.printf(text_to_display, self.x + 45, self.y + 40, self.width - 60, "left")
+
+    love.graphics.setColor(0.5, 0.5, 0.5, 1) -- Grey color for the hint
+    love.graphics.setFont(self.font.font)
+    love.graphics.printf("Press 'Q' to exit", self.x + 45, self.y + self.height - 40, self.width - 60, "center")
 end
 
 function NoteUI:show(text)
