@@ -5,12 +5,14 @@ local StyledButton = require("engine.ui.styled_button")
 local ParticleSystem = require("engine.particles.particle_system")
 local MainSceneClass = require("scenes.main_scene")
 local CreditsSceneClass = require("scenes.credits_scene")
+local BossSceneClass = require("scenes.boss_scene")
 
 local CANVAS_W, CANVAS_H = 384, 216
 
 ---@class MainMenuScene : Scene
 ---@field customFont16px CustomFont
 ---@field playButton StyledButton
+---@field bossButton StyledButton
 ---@field creditsButton StyledButton
 ---@field quitButton StyledButton
 ---@field particleSystem ParticleSystem
@@ -32,16 +34,17 @@ function MainMenuScene.new()
     local button_width = 100
     local button_height = 20
     local button_spacing = 25
-    local total_height = (button_height * 3) + (button_spacing * 2)
+    local num_buttons = love.system.getOS() == "Web" and 3 or 4
+    local total_height = (button_height * num_buttons) + (button_spacing * (num_buttons - 1))
     local start_y = (CANVAS_H - total_height) / 2
     local start_x = (CANVAS_W - button_width) / 2
+    local current_y = start_y
 
     self.particleSystem = ParticleSystem.new()
-    print(MainSceneClass)
 
     self.playButton = StyledButton.new(
         start_x,
-        start_y,
+        current_y,
         button_width,
         button_height,
         "Play",
@@ -52,10 +55,26 @@ function MainMenuScene.new()
         { 0.6, 0.6, 0.6, 1 },
         self.particleSystem
     )
+    current_y = current_y + button_height + button_spacing
+
+    self.bossButton = StyledButton.new(
+        start_x,
+        current_y,
+        button_width,
+        button_height,
+        "Boss",
+        function()
+            SceneManager.gotoScene(BossSceneClass.new())
+        end,
+        self.customFont16px,
+        { 0.6, 0.6, 0.6, 1 },
+        self.particleSystem
+    )
+    current_y = current_y + button_height + button_spacing
 
     self.creditsButton = StyledButton.new(
         start_x,
-        start_y + button_height + button_spacing,
+        current_y,
         button_width,
         button_height,
         "Credits",
@@ -66,11 +85,12 @@ function MainMenuScene.new()
         { 0.6, 0.6, 0.6, 1 },
         self.particleSystem
     )
+    current_y = current_y + button_height + button_spacing
 
     if love.system.getOS() ~= "Web" then
         self.quitButton = StyledButton.new(
             start_x,
-            start_y + (button_height + button_spacing) * 2,
+            current_y,
             button_width,
             button_height,
             "Exit",
@@ -92,6 +112,7 @@ function MainMenuScene:update(dt)
     local cx, cy = self:toCanvas(mx, my)
 
     self.playButton:update(dt, cx, cy)
+    self.bossButton:update(dt, cx, cy)
     self.creditsButton:update(dt, cx, cy)
     if self.quitButton then
         self.quitButton:update(dt, cx, cy)
@@ -104,6 +125,7 @@ function MainMenuScene:draw()
     love.graphics.clear(0, 0, 0, 1)
 
     self.playButton:draw()
+    self.bossButton:draw()
     self.creditsButton:draw()
     if self.quitButton then
         self.quitButton:draw()
@@ -120,6 +142,7 @@ function MainMenuScene:mousepressed(x, y, button)
     local cx, cy = self:toCanvas(x, y)
     if button == 1 then
         self.playButton:mousepressed(button)
+        self.bossButton:mousepressed(button)
         self.creditsButton:mousepressed(button)
         if self.quitButton then
             self.quitButton:mousepressed(button)
@@ -130,6 +153,7 @@ end
 function MainMenuScene:mousereleased(x, y, button)
     if button == 1 then
         self.playButton:mousereleased(button)
+        self.bossButton:mousereleased(button)
         self.creditsButton:mousereleased(button)
         if self.quitButton then
             self.quitButton:mousereleased(button)

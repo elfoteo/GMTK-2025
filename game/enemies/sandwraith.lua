@@ -43,11 +43,14 @@ local SPEED = 20
 -- @return SandWraith
 function SandWraith.new(scene, x, y)
     -- Note: Hitbox dimensions are passed directly to the base Enemy constructor.
-    local sw = Enemy.new(scene, x, y, SPEED, 48, 56)
-    setmetatable(sw, SandWraith)
-    ---@cast sw SandWraith
+    local self = Enemy.new(scene, x, y, SPEED, 48, 56)
+    ---@cast self Enemy
+    self.health = 200
+    self.max_health = 200
+    setmetatable(self, SandWraith)
+    ---@cast self SandWraith
 
-    sw.animation = Animated:new({
+    self.animation = Animated:new({
         idle = {
             images = {
                 love.graphics.newImage("assets/entities/sandwraith-idle1.png"),
@@ -72,32 +75,32 @@ function SandWraith.new(scene, x, y)
             loops = false,
         }
     })
-    sw.animation:set_state("idle")
+    self.animation:set_state("idle")
 
-    sw.direction = 1
-    sw.wanderTimer = 0
+    self.direction = 1
+    self.wanderTimer = 0
 
     -- AI State Management
-    sw.aiState = "wandering" -- Can be: "wandering", "engaging", "attacking"
-    sw.isVanished = false
+    self.aiState = "wandering" -- Can be: "wandering", "engaging", "attacking"
+    self.isVanished = false
 
     -- AI Parameters
-    sw.detectionRange = 200
-    sw.optimalDistance = 150
-    sw.repositionBuffer = 20
+    self.detectionRange = 200
+    self.optimalDistance = 150
+    self.repositionBuffer = 20
 
     -- Attack Timers & Counters
-    sw.vanishDuration = 2.2
-    sw.vanishTimer = 0
-    sw.attackCooldownDuration = 2
-    sw.attackCooldownTimer = sw.attackCooldownDuration
-    sw.attackWaveCount = 0
-    sw.timeSinceLastWave = 0
-    sw.vanishParticleTimer = 0
-    sw.vanishParticleCounter = 0
-    sw.attack_cast_timer = 0
+    self.vanishDuration = 2.2
+    self.vanishTimer = 0
+    self.attackCooldownDuration = 1.5
+    self.attackCooldownTimer = self.attackCooldownDuration
+    self.attackWaveCount = 0
+    self.timeSinceLastWave = 0
+    self.vanishParticleTimer = 0
+    self.vanishParticleCounter = 0
+    self.attack_cast_timer = 0
 
-    return sw
+    return self
 end
 
 ---

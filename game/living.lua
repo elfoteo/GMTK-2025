@@ -80,4 +80,23 @@ function Living:draw()
     love.graphics.pop()
 end
 
+---
+-- Checks if the object is an instance of a given class.
+-- @param class table The class to check against.
+-- @return boolean True if the object is an instance of the class.
+function Living:is(class)
+    local mt = getmetatable(self)
+    while mt do
+        if mt == class or mt.__index == class then
+            return true
+        end
+        if not mt.__index then
+            return false
+        end
+        mt = getmetatable(mt.__index)
+    end
+    return false
+end
+
+
 return Living

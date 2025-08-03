@@ -32,7 +32,7 @@ end
 
 --- Returns the width of the given text in pixels.
 ---@param text string The text to measure.
----@return number The width of the text.
+---@return number lenght The width of the text.
 function CustomFont:getWidth(text)
     return self.font:getWidth(text)
 end

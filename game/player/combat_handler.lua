@@ -22,6 +22,11 @@ function CombatHandler:new()
     return setmetatable(handler, { __index = CombatHandler })
 end
 
+function CombatHandler:interrupt_combo()
+    self.lastAttackTime = nil
+    self.secondLastAttackTime = nil
+end
+
 --- Updates all active projectiles.
 --- It checks for collisions and removes projectiles that have hit something or gone off-screen.
 ---@param dt number The time elapsed since the last frame (delta time).

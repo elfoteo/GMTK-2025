@@ -10,7 +10,8 @@ local EnemyFactory = {}
 local enemy_classes = {
     sandwraith = "game.enemies.sandwraith",
     cogmauler = "game.enemies.cogmauler",
-    waiterbot = "game.enemies.waiterbot"
+    waiterbot = "game.enemies.waiterbot",
+    painter_boss = "game.enemies.painter_boss"
 }
 
 ---

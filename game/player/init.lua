@@ -5,43 +5,44 @@ local MovementHandler = require("game.player.movement_handler")
 local RewindHandler = require("game.player.rewind_handler")
 local SceneManager = require("engine.scene_manager")
 local SparkParticle = require("engine.particles.spark_particle")
+local loveTimer = require("love.timer")
 
---- The main player character.
---- This class is responsible for managing the player's state, including movement,
---- combat, animations, and special abilities like rewinding time. It aggregates
---- several handlers to delegate specific logic.
 ---@class Player : Living
----@field x number The player's x-coordinate.
----@field y number The player's y-coordinate.
----@field speed number The base movement speed of the player.
----@field size number The visual size of the player sprite.
----@field hitboxW number The width of the player's collision hitbox.
----@field hitboxH number The height of the player's collision hitbox.
----@field vx number The player's current velocity on the x-axis.
----@field vy number The player's current velocity on the y-axis.
----@field dash_vx number The player's current dash velocity on the x-axis.
----@field onGround boolean True if the player is currently standing on solid ground.
----@field isClimbing boolean True if the player is currently on a climbable surface.
----@field direction number The direction the player is facing (1 for right, -1 for left).
----@field lastDownPressTime number The timestamp of the last time the down key was pressed, for platform drop-through logic.
----@field dropThrough boolean True if the player is currently intentionally falling through a platform.
----@field fall_distance number The distance the player has fallen, used for calculating fall damage.
----@field mana number The player's current mana, used for special abilities.
----@field mana_regeneration_rate number The rate at which the player regenerates mana per second.
----@field animation_handler AnimationHandler The handler for the player's animations.
----@field combat_handler CombatHandler The handler for the player's combat logic.
----@field movement_handler MovementHandler The handler for the player's movement physics.
----@field rewind_handler RewindHandler The handler for the player's time rewind ability.
----@field touch_damage_cooldown number A cooldown to prevent taking damage every frame from the same source.
+---@field x number
+---@field y number
+---@field speed number
+---@field size number
+---@field hitboxW number
+---@field hitboxH number
+---@field vx number
+---@field vy number
+---@field dash_vx number
+---@field onGround boolean
+---@field isClimbing boolean
+---@field direction number
+---@field lastDownPressTime number
+---@field dropThrough boolean
+---@field fall_distance number
+---@field mana number
+---@field mana_regeneration_rate number
+---@field animation_handler AnimationHandler
+---@field combat_handler CombatHandler
+---@field movement_handler MovementHandler
+---@field rewind_handler RewindHandler
+---@field touch_damage_cooldown number
+---@field is_dashing boolean
+---@field dash_timer number
+---@field dash_direction number
+---@field dash_speed number
+---@field dash_cost number
+---@field lastLeftPressTime number
+---@field lastRightPressTime number
+---@field doubleTapThreshold number
+---@field is_stunned boolean
+---@field stun_timer number
 local Player = setmetatable({}, { __index = Living })
 Player.__index = Player
 
---- Creates a new Player instance.
----@param scene MainScene The main scene object that contains the player.
----@param x number The initial x-coordinate for the player.
----@param y number The initial y-coordinate for the player.
----@param speed number The movement speed for the player.
----@return Player The new player instance.
 function Player.new(scene, x, y, speed)
     local p = Living.new(scene, x, y, speed)
     setmetatable(p, Player)
@@ -57,16 +58,26 @@ function Player.new(scene, x, y, speed)
     p.dropThrough = false
     p.fall_distance = 0
     p.mana = 0
-    p.mana_regeneration_rate = 10 -- Mana per second
+    p.mana_regeneration_rate = 10
     p.touch_damage_cooldown = 0
+
     p.is_dashing = false
     p.dash_timer = 0
     p.dash_direction = 0
     p.dash_speed = 400
     p.dash_cost = 5
+
+    -- double-tap dash tracking
+    p.lastLeftPressTime = 0
+    p.lastRightPressTime = 0
+    p.doubleTapThreshold = 0.25
+
     p.is_healing = false
     p.healing_timer = 0
     p.levitation_offset = 0
+
+    p.is_stunned = false
+    p.stun_timer = 0
 
     p.animation_handler = AnimationHandler:new(p)
     p.combat_handler = CombatHandler:new()
@@ -76,15 +87,19 @@ function Player.new(scene, x, y, speed)
     return p
 end
 
---- Updates the player's state for the current frame.
---- This calls the update methods of all the player's handlers.
----@param dt number The time elapsed since the last frame (delta time).
----@param level TileMap The level's tilemap for collision detection.
----@param particle_system ParticleSystem The main particle system for creating effects.
 function Player:update(dt, level, particle_system)
     if self.is_healing then
         self:update_healing(dt, particle_system)
-        return -- Block other updates while healing
+        return
+    end
+
+    if self.is_stunned then
+        self.stun_timer = self.stun_timer - dt
+        if self.stun_timer <= 0 then
+            self.is_stunned = false
+        end
+        -- Only prevent movement, don't set vx/vy to 0 here to allow for natural falling/sliding
+        return
     end
 
     local wasOnGround = self.onGround
@@ -114,69 +129,60 @@ function Player:startHealing(duration)
 end
 
 function Player:update_healing(dt, particle_system)
-    if self.is_healing then
-        self.healing_timer = self.healing_timer - dt
-        self.vx = 0 -- Stop horizontal movement
-        self.vy = 0 -- Stop vertical movement
+    if not self.is_healing then return end
 
-        -- Heal the player gradually
-        local health_to_restore = (100 / 1.5) * dt -- Assuming max health is 100 and duration is 1.5s
-        self:heal(health_to_restore)
+    self.healing_timer = self.healing_timer - dt
+    self.vx, self.vy = 0, 0
 
-        -- Levitation logic
-        local levitation_duration = 0.3
-        local total_duration = 1.5
-        local max_levitation = -5 -- Negative is up
-        if self.healing_timer > total_duration - levitation_duration then
-            -- Going up
-            local progress = (total_duration - self.healing_timer) / levitation_duration
-            self.levitation_offset = progress * max_levitation
-        elseif self.healing_timer < levitation_duration then
-            -- Going down
-            local progress = self.healing_timer / levitation_duration
-            self.levitation_offset = progress * max_levitation
-        else
-            -- Fully levitating
-            self.levitation_offset = max_levitation
-        end
+    local health_to_restore = (100 / 1.5) * dt
+    self:heal(health_to_restore)
 
-        -- UI Fade
-        local fade_duration = 0.1
-        if self.healing_timer > total_duration - fade_duration then
-            self.scene.ui.alpha = (total_duration - self.healing_timer) / fade_duration
-        elseif self.healing_timer < fade_duration then
-            self.scene.ui.alpha = 1 - (self.healing_timer / fade_duration)
-        else
-            self.scene.ui.alpha = 0
-        end
-        self.scene.ui.alpha = 1 - self.scene.ui.alpha -- Invert because we want to fade out
+    local levitation_duration = 0.3
+    local total_duration = 1.5
+    local max_levitation = -5
+    if self.healing_timer > total_duration - levitation_duration then
+        local progress = (total_duration - self.healing_timer) / levitation_duration
+        self.levitation_offset = progress * max_levitation
+    elseif self.healing_timer < levitation_duration then
+        local progress = self.healing_timer / levitation_duration
+        self.levitation_offset = progress * max_levitation
+    else
+        self.levitation_offset = max_levitation
+    end
 
-        -- Emit orange spark particles in a circle
-        for _ = 1, 3 do
-            local angle = math.random() * 2 * math.pi
-            local speed = 20 + math.random() * 20 -- Reduced speed
-            local vx = math.cos(angle) * speed
-            local vy = math.sin(angle) * speed
-            local lifespan = 0.4 + math.random() * 0.4
-            particle_system:emit(self.x, self.y, vx, vy, lifespan, { 1, 0.5, 0 }, SparkParticle, 0.5) -- Reduced size
-        end
+    local fade_duration = 0.1
+    if self.healing_timer > total_duration - fade_duration then
+        self.scene.ui.alpha = (total_duration - self.healing_timer) / fade_duration
+    elseif self.healing_timer < fade_duration then
+        self.scene.ui.alpha = 1 - (self.healing_timer / fade_duration)
+    else
+        self.scene.ui.alpha = 0
+    end
+    self.scene.ui.alpha = 1 - self.scene.ui.alpha
 
-        if self.healing_timer <= 0 then
-            self.is_healing = false
-            self.health = 100          -- Ensure health is full at the end
-            self.scene.ui.alpha = 1    -- Restore UI alpha
-            self.levitation_offset = 0 -- Reset levitation
-        end
+    for _ = 1, 3 do
+        local angle = math.random() * 2 * math.pi
+        local speed = 20 + math.random() * 20
+        local vx = math.cos(angle) * speed
+        local vy = math.sin(angle) * speed
+        local lifespan = 0.4 + math.random() * 0.4
+        particle_system:emit(self.x, self.y, vx, vy, lifespan, { 1, 0.5, 0 }, SparkParticle, 0.5)
+    end
+
+    if self.healing_timer <= 0 then
+        self.is_healing = false
+        self.health = 100
+        self.scene.ui.alpha = 1
+        self.levitation_offset = 0
     end
 end
 
 function Player:update_dash(dt, particle_system)
     if self.is_dashing then
         self.dash_timer = self.dash_timer - dt
-        local dash_decay = (self.dash_timer / 0.2) -- a 0-1 value
-        self.dash_vx = self.dash_speed * self.dash_direction * dash_decay
+        local decay = self.dash_timer / 0.2
+        self.dash_vx = self.dash_speed * self.dash_direction * decay
 
-        -- Emit particles throughout the dash
         local base_angle = (self.dash_direction == 1) and math.pi or 0
         for _ = 1, 2 do
             local y_pos = self.y - self.hitboxH / 2 + math.random() * self.hitboxH
@@ -195,33 +201,22 @@ function Player:update_dash(dt, particle_system)
     end
 end
 
---- Inflicts damage on the player and checks for death.
----@param damage number The amount of damage to inflict.
----@param source Living The object that is the source of the damage.
 function Player:take_damage(damage, source)
     Living.take_damage(self, damage)
+    self.is_stunned = true
+    self.stun_timer = 0.1
+    self.combat_handler:interrupt_combo() -- Interrupt combo
     if self.health <= 0 then
         SceneManager.gotoScene(require("scenes.death_scene").new())
     end
 end
 
---- Updates the state of all projectiles fired by the player.
----@param dt number The time elapsed since the last frame (delta time).
----@param particleSystem ParticleSystem The main particle system for creating effects.
----@param tilemap TileMap The level's tilemap for collision detection.
----@param enemies Enemy[] A table containing all active enemies.
----@param world_min_x number The minimum x-boundary of the world.
----@param world_max_x number The maximum x-boundary of the world.
----@param world_min_y number The minimum y-boundary of the world.
----@param world_max_y number The maximum y-boundary of the world.
 function Player:updateProjectiles(dt, particleSystem, tilemap, enemies, world_min_x, world_max_x, world_min_y,
                                   world_max_y)
     self.combat_handler:update(dt, particleSystem, tilemap, enemies, world_min_x, world_max_x, world_min_y, world_max_y,
         self.scene)
 end
 
---- Draws the player on the screen.
---- Applies a transparency effect if the player is currently rewinding.
 function Player:draw()
     if self.rewind_handler.is_rewinding then
         love.graphics.setColor(1, 1, 1, 0.5)
@@ -230,84 +225,106 @@ function Player:draw()
     end
     self.animation_handler:draw(self.x, self.y + self.levitation_offset, self.direction, self.size)
 
-    local clock_hand_center = self.animation_handler:get_current_clock_hand_center()
-    if clock_hand_center then
+    local clock_center = self.animation_handler:get_current_clock_hand_center()
+    if clock_center then
         local health_ratio = self.health / 100
-        local total_minutes_from_midnight = (1 - health_ratio) * 12 * 60
-        local hours = math.floor(total_minutes_from_midnight / 60)
-        local minutes = total_minutes_from_midnight % 60
+        local total_minutes = (1 - health_ratio) * 12 * 60
+        local hours = math.floor(total_minutes / 60)
+        local minutes = total_minutes % 60
 
-        local minute_hand_angle = (minutes / 60) * 2 * math.pi - math.pi / 2
-        local hour_hand_angle = ((hours % 12 + minutes / 60) / 12) * 2 * math.pi - math.pi / 2
+        local minute_angle = (minutes / 60) * 2 * math.pi - math.pi / 2
+        local hour_angle = ((hours % 12 + minutes / 60) / 12) * 2 * math.pi - math.pi / 2
 
-        local center_x = self.x - self.size / 2 + clock_hand_center.x
-        local center_y = self.y - self.size / 2 + clock_hand_center.y + self.levitation_offset
+        local cx = self.x - self.size / 2 + clock_center.x
+        local cy = self.y - self.size / 2 + clock_center.y + self.levitation_offset
 
         if self.animation_handler.clock_hand_color then
             love.graphics.setColor(self.animation_handler.clock_hand_color)
         end
 
-        -- Minute hand (longer)
-        local minute_hand_length = 7
-        local minute_dx = minute_hand_length * math.cos(minute_hand_angle)
-        local minute_dy = minute_hand_length * math.sin(minute_hand_angle)
-        local minute_points = {}
-        for i = 0, minute_hand_length do
-            local t = i / minute_hand_length
-            table.insert(minute_points, center_x + minute_dx * t)
-            table.insert(minute_points, center_y + minute_dy * t)
+        local ml, hl = 7, 5
+        local mdx, mdy = ml * math.cos(minute_angle), ml * math.sin(minute_angle)
+        local points = {}
+        for i = 0, ml do
+            local t = i / ml
+            table.insert(points, cx + mdx * t)
+            table.insert(points, cy + mdy * t)
         end
-        love.graphics.points(minute_points)
+        love.graphics.points(points)
 
-        -- Hour hand (shorter)
-        local hour_hand_length = 5
-        local hour_dx = hour_hand_length * math.cos(hour_hand_angle)
-        local hour_dy = hour_hand_length * math.sin(hour_hand_angle)
-        local hour_points = {}
-        for i = 0, hour_hand_length do
-            local t = i / hour_hand_length
-            table.insert(hour_points, center_x + hour_dx * t)
-            table.insert(hour_points, center_y + hour_dy * t)
+        local hdx, hdy = hl * math.cos(hour_angle), hl * math.sin(hour_angle)
+        local hpoints = {}
+        for i = 0, hl do
+            local t = i / hl
+            table.insert(hpoints, cx + hdx * t)
+            table.insert(hpoints, cy + hdy * t)
         end
-        love.graphics.points(hour_points)
+        love.graphics.points(hpoints)
     end
 
     love.graphics.setColor(1, 1, 1, 1)
 end
 
---- Draws all projectiles fired by the player.
 function Player:drawProjectiles()
     self.combat_handler:draw()
 end
 
---- Checks for AABB collision between the player and another object.
----@param other Living The other object to check for collision against.
----@return boolean True if the hitboxes are overlapping.
 function Player:checkCollision(other)
     local hw, hh = self.hitboxW / 2, self.hitboxH / 2
     local ohw, ohh = other.hitboxW / 2, other.hitboxH / 2
-    return (self.x - hw) < (other.x + ohw) and (self.x + hw) > (other.x - ohw) and (self.y - hh) < (other.y + ohh) and
-        (self.y + hh) > (other.y - ohh)
+    return (self.x - hw) < (other.x + ohw)
+        and (self.x + hw) > (other.x - ohw)
+        and (self.y - hh) < (other.y + ohh)
+        and (self.y + hh) > (other.y - ohh)
 end
 
---- Handles key press events for the player.
----@param key string The key that was pressed.
 function Player:keypressed(key)
-    if (key == "lshift" or key == "rshift") and self.mana >= self.dash_cost and not self.is_dashing and not self.isClimbing then
+    if self.is_stunned then return end
+    local now = loveTimer.getTime()
+
+    if (key == "lshift" or key == "rshift")
+        and self.mana >= self.dash_cost
+        and not self.is_dashing
+        and not self.isClimbing
+    then
         self.mana = self.mana - self.dash_cost
         self.is_dashing = true
         self.dash_timer = 0.2
         self.dash_direction = self.direction
     end
+
+    if key == "left" or key == "a" then
+        if now - self.lastLeftPressTime <= self.doubleTapThreshold
+            and self.mana >= self.dash_cost
+            and not self.is_dashing
+            and not self.isClimbing
+        then
+            self.mana = self.mana - self.dash_cost
+            self.is_dashing = true
+            self.dash_timer = 0.2
+            self.dash_direction = -1
+        end
+        self.lastLeftPressTime = now
+    elseif key == "right" or key == "d" then
+        if now - self.lastRightPressTime <= self.doubleTapThreshold
+            and self.mana >= self.dash_cost
+            and not self.is_dashing
+            and not self.isClimbing
+        then
+            self.mana = self.mana - self.dash_cost
+            self.is_dashing = true
+            self.dash_timer = 0.2
+            self.dash_direction = 1
+        end
+        self.lastRightPressTime = now
+    end
+
     self.movement_handler:keypressed(key, self)
     self.rewind_handler:keypressed(key, self)
 end
 
---- Handles mouse press events for the player.
----@param x number The x-coordinate of the mouse press.
----@param y number The y-coordinate of the mouse press.
----@param button number The mouse button that was pressed.
 function Player:mousepressed(x, y, button)
+    if self.is_stunned then return end
     self.combat_handler:mousepressed(x, y, button, self)
 end
 

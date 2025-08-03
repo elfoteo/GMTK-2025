@@ -1,4 +1,5 @@
 local CustomFont = require("engine.custom_font")
+local SceneManager = require("engine.scene_manager")
 
 ---@class NoteUI
 ---@field x number
@@ -9,6 +10,7 @@ local CustomFont = require("engine.custom_font")
 ---@field font CustomFont
 ---@field text string
 ---@field active boolean
+---@field isBossNote boolean
 local NoteUI = {}
 NoteUI.__index = NoteUI
 
@@ -22,6 +24,7 @@ function NoteUI.new(x, y, width, height, text, font)
     self.font = font
     self.text = text
     self.active = false
+    self.isBossNote = false
     return self
 end
 
@@ -36,16 +39,30 @@ function NoteUI:draw()
 
     love.graphics.setColor(0, 0, 0, 1)
     love.graphics.setFont(self.font.font)
-    love.graphics.printf(self.text, self.x + 45, self.y + 40, self.width - 60, "left")
+
+    local text_to_display = self.text
+    if self.isBossNote then
+        text_to_display = string.sub(self.text, 2)
+    end
+
+    love.graphics.printf(text_to_display, self.x + 45, self.y + 40, self.width - 60, "left")
 end
 
 function NoteUI:show(text)
     self.text = text
+    if string.sub(text, 1, 1) == "." then
+        self.isBossNote = true
+    else
+        self.isBossNote = false
+    end
     self.active = true
 end
 
 function NoteUI:hide()
     self.active = false
+    if self.isBossNote then
+        SceneManager.gotoScene(require("scenes.boss_scene").new())
+    end
 end
 
 return NoteUI
