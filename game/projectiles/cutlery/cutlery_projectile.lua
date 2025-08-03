@@ -25,14 +25,16 @@ function CutleryProjectile.new(x, y, speed, angle, image_path)
     }
     local self = Projectile.new(x, y, speed, angle, image_path, trail_options, 10)
     setmetatable(self, CutleryProjectile)
-    self.gravity = 30
+    self.gravity = 90
     return self
 end
 
-function CutleryProjectile:update(dt, particleSystem, tilemap, enemies, world_min_x, world_max_x, world_min_y, world_max_y)
+function CutleryProjectile:update(dt, particleSystem, tilemap, enemies, world_min_x, world_max_x, world_min_y,
+                                  world_max_y)
     self.vy = self.vy + self.gravity * dt
     self.angle = math.atan2(self.vy, self.vx)
-    return Projectile.update(self, dt, particleSystem, tilemap, enemies, world_min_x, world_max_x, world_min_y, world_max_y)
+    return Projectile.update(self, dt, particleSystem, tilemap, enemies, world_min_x, world_max_x, world_min_y,
+        world_max_y)
 end
 
 return CutleryProjectile

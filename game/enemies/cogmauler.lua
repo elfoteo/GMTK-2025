@@ -1,260 +1,276 @@
----
--- A mechanical melee enemy that patrols and chases the player.
---
--- @description
--- The Cogmauler is a ground-based enemy with a two-state AI. In its "wander"
--- state, it patrols back and forth around its spawn point, occasionally
--- stopping to idle. When the player comes within its detection range, it
--- enters the "chase" state, where it will relentlessly pursue and attempt to
--- attack the player with its wide-swinging claw.
---
--- @classmod Cogmauler
-
-local Enemy = require("game.enemy")
-local Animated = require("engine.animated")
+local Enemy            = require("game.enemy")
+local Animated         = require("engine.animated")
 
 ---@class Cogmauler : Enemy
----@field animation Animated The animation controller for the Cogmauler.
----@field direction number The direction the Cogmauler is facing (1 for right, -1 for left).
----@field ai_state string The current state of the AI ('wander' or 'chase').
----@field spawn_pos table The {x, y} position where the Cogmauler was spawned.
----@field patrol_dir number The current direction of its patrol movement (1 or -1).
----@field idle_timer number A countdown timer for its idle state.
----@field attack_timer number A countdown timer for its attack cooldown.
----@field has_hit_this_attack boolean A flag to ensure its attack only hits once per animation.
-local Cogmauler = setmetatable({}, { __index = Enemy })
-Cogmauler.__index = Cogmauler
+local Cogmauler        = setmetatable({}, { __index = Enemy })
+Cogmauler.__index      = Cogmauler
 
 -- Constants
-local HEALTH = 150
-local SPEED = 40
-local ATTACK_DAMAGE = 25
+local HEALTH           = 150
+local SPEED            = 40
+local ATTACK_DAMAGE    = 25
 local DETECTION_RADIUS = 180
-local ATTACK_RANGE = 45
-local ATTACK_COOLDOWN = 1.5
-local PATROL_DISTANCE = 100
-local IDLE_CHANCE = 0.01
-local IDLE_DURATION = 2.5
+local ATTACK_RANGE     = 45
+local ATTACK_COOLDOWN  = 1.5
+local PATROL_DISTANCE  = 300
+local IDLE_CHANCE      = 0.001
+local IDLE_DURATION    = 2.0
+local LEDGE_CHECK_DIST = 10
+local WALL_CHECK_DIST  = 5
 
 -- Animation dimensions
-local IDLE_WALK_WIDTH = 90
-local ATTACK_WIDTH = 108
-local ANIM_HEIGHT = 81
+local IDLE_WALK_WIDTH  = 90
+local ATTACK_WIDTH     = 108
+local ANIM_HEIGHT      = 81
 
----
--- Creates a new Cogmauler.
--- @param scene Scene The scene the enemy belongs to.
--- @param x number The initial x-coordinate.
--- @param y number The initial y-coordinate.
--- @return Cogmauler
 function Cogmauler.new(scene, x, y)
-    local cg = Enemy.new(scene, x, y, SPEED, 38, 81) -- Using a tighter hitbox than the full sprite
+    local cg = Enemy.new(scene, x, y, SPEED, 38, 81)
     setmetatable(cg, Cogmauler)
     ---@cast cg Cogmauler
 
-    cg.health = HEALTH
-    cg.max_health = HEALTH
-    cg.animation = Animated:new({
+    cg.health             = HEALTH
+    cg.max_health         = HEALTH
+    cg.animation_locked   = false
+    cg.post_attack_freeze = 0
+    cg.damage_applied     = false
+    cg.tried_frame5       = false
+    cg.tried_frame6       = false
+
+    cg.animation          = Animated:new({
         idle = { path_pattern = "assets/entities/cogmauler-idle%d.png", frames = 3, delay = 0.25 },
         walk = { path_pattern = "assets/entities/cogmauler-walk%d.png", frames = 6, delay = 0.15 },
         attack = {
             path_pattern = "assets/entities/cogmauler-attack%d.png",
-            frames = 6,
-            delay = 0.1,
-            loops = false,
-            on_complete = function() cg.has_hit_this_attack = false end
+            frames       = 6,
+            delay        = 0.1,
+            loops        = false,
+            on_complete  = function()
+                cg.is_attacking            = false
+                cg.post_attack_freeze      = 1.0
+                cg.animation_locked        = true
+                cg.animation.current_frame = 6
+            end
         }
     })
     cg.animation:set_state("idle")
 
-    cg.direction = 1
-    cg.ai_state = 'wander'
-    cg.spawn_pos = { x = x, y = y }
-    cg.patrol_dir = 1
-    cg.idle_timer = 0
-    cg.attack_timer = 0
-    cg.has_hit_this_attack = false
+    cg.direction       = 1
+    cg.ai_state        = "wander"
+    cg.spawn_pos       = { x = x, y = y }
+    cg.patrol_dir      = 1
+    cg.idle_timer      = 0
+    cg.attack_timer    = 0
+    cg.is_attacking    = false
+    cg.is_knocked_back = false
+    cg.knockback_timer = 0
+    cg.stun_timer      = 0
 
     return cg
 end
 
----
--- The main AI state machine for the Cogmauler.
--- @param dt number The time since the last frame.
--- @param player Player The player object.
 function Cogmauler:ai(dt, player)
     if self.stun_timer > 0 or self.is_knocked_back then
-        -- self.vx is already set by the knockback function, so we just return.
+        self:handle_stun_and_knockback(dt)
         return
     end
 
-    -- If attacking, lock state until animation is finished
-    if self.animation.current_state == 'attack' and not self.animation.is_finished then
-        self.vx = 0
-        self:update_animation() -- Still need to update the animation timer
+    if self.post_attack_freeze > 0 then
+        self.post_attack_freeze = math.max(0, self.post_attack_freeze - dt)
+        if self.post_attack_freeze == 0 then
+            self.animation_locked = false
+            self.animation:set_state("idle")
+        end
         return
     end
 
     self.attack_timer = math.max(0, self.attack_timer - dt)
-    self.idle_timer = math.max(0, self.idle_timer - dt)
+    self.idle_timer   = math.max(0, self.idle_timer - dt)
 
-    local distance_to_player = math.sqrt((player.x - self.x) ^ 2 + (player.y - self.y) ^ 2)
+    local dx, dy      = player.x - self.x, player.y - self.y
+    local dist        = math.sqrt(dx * dx + dy * dy)
+    local ady         = math.abs(dy)
 
-    -- State transition logic
-    if distance_to_player < DETECTION_RADIUS then
-        self.ai_state = 'chase'
-    elseif distance_to_player > DETECTION_RADIUS * 1.2 then -- Add a buffer to prevent state flickering
-        self.ai_state = 'wander'
+    if self.ai_state == "wander" then
+        if dist < DETECTION_RADIUS and ady < 50 then
+            self.ai_state = "chase"
+        end
+    elseif self.ai_state == "chase" then
+        if dist > DETECTION_RADIUS * 1.5 or ady > 50 then
+            self.ai_state = "wander"
+        elseif dist <= ATTACK_RANGE and ady < 50 and self.attack_timer <= 0 then
+            self.ai_state = "attack"
+        end
+    elseif self.ai_state == "attack" then
+        if not self.is_attacking then
+            self.ai_state = "chase"
+        end
     end
 
-    if self.ai_state == 'wander' then
+    if self.ai_state == "wander" then
         self:wander_state(dt)
-    elseif self.ai_state == 'chase' then
-        self:chase_state(dt, player, distance_to_player)
+    elseif self.ai_state == "chase" then
+        self:chase_state(dt, player)
+    elseif self.ai_state == "attack" then
+        self:attack_state(dt, player)
     end
 
-    -- Update direction based on velocity
     if self.vx ~= 0 then
-        self.direction = self.vx > 0 and 1 or -1
+        self.direction = (self.vx > 0) and 1 or -1
     end
 
-    -- Ledge detection
-    local next_x = self.x + self.direction * self.hitboxW / 2
-    local ground_check_y = self.y + self.hitboxH / 2 + 1
-    if self.on_ground and not self.scene.tilemap:getTileAtPixel(next_x, ground_check_y) then
-        self.vx = 0
-        self.patrol_dir = -self.patrol_dir -- Turn around at ledges
-    end
-
-    self:update_animation()
+    self:check_ledges_and_walls()
+    self:update_animation(dt)
 end
 
----
--- AI logic for the 'wander' state.
--- @param dt number The time since the last frame.
 function Cogmauler:wander_state(dt)
     if self.idle_timer > 0 then
         self.vx = 0
         return
     end
 
-    -- Patrol logic
     self.vx = self.patrol_dir * self.speed
+
     if math.abs(self.x - self.spawn_pos.x) > PATROL_DISTANCE then
         self.patrol_dir = -self.patrol_dir
     end
 
-    -- Randomly decide to go idle
     if math.random() < IDLE_CHANCE then
         self.idle_timer = IDLE_DURATION
     end
 end
 
----
--- AI logic for the 'chase' state.
--- @param dt number The time since the last frame.
--- @param player Player The player object.
--- @param distance_to_player number The current distance to the player.
-function Cogmauler:chase_state(dt, player, distance_to_player)
-    if distance_to_player < ATTACK_RANGE and math.abs(player.y - self.y) < 50 then
-        -- In attack range
-        if self.attack_timer <= 0 then
-            -- Ready to attack
-            self.vx = 0
-            self.animation:set_state('attack')
-            self.attack_timer = ATTACK_COOLDOWN
-            self.has_hit_this_attack = false
-        else
-            -- In range, but on cooldown, so wait.
-            self.vx = 0
-        end
-    else
-        -- Out of range, so chase
-        local chase_dir = player.x > self.x and 1 or -1
-        self.vx = chase_dir * self.speed
+function Cogmauler:chase_state(dt, player)
+    local dir = (player.x > self.x) and 1 or -1
+    self.vx = dir * self.speed
+end
+
+function Cogmauler:attack_state(dt, player)
+    if not self.is_attacking then
+        self.is_attacking     = true
+        self.animation_locked = false
+        self.damage_applied   = false
+        self.tried_frame5     = false
+        self.tried_frame6     = false
+        self.animation:set_state("attack")
+        self.attack_timer = ATTACK_COOLDOWN
+        self.vx           = 0
     end
 end
 
----
--- Updates the current animation based on the enemy's state.
-function Cogmauler:update_animation()
-    local current_anim = self.animation.current_state
-    local next_anim = current_anim
+function Cogmauler:update_animation(dt)
+    if self.animation_locked then
+        return
+    end
 
-    if current_anim == 'attack' and not self.animation.is_finished then
-        -- Let the attack animation finish
-        next_anim = 'attack'
+    local state = self.animation.current_state
+    local next_state
+
+    if self.is_attacking then
+        next_state = "attack"
     elseif self.vx == 0 then
-        next_anim = 'idle'
+        next_state = "idle"
     else
-        next_anim = 'walk'
+        next_state = "walk"
     end
 
-    if next_anim ~= current_anim then
-        self.animation:set_state(next_anim)
+    if next_state ~= state then
+        self.animation:set_state(next_state)
     end
-    self.animation:update(love.timer.getDelta())
+
+    self.animation:update(dt)
 end
 
----
--- Overrides the base update to include attack logic.
--- @param dt number The time since the last frame.
--- @param player Player The player object.
 function Cogmauler:update(dt, player)
-    Enemy.update(self, dt, player) -- Calls ai() and update_physics()
+    Enemy.update(self, dt, player)
 
-    -- Handle attack hitbox logic
-    if self.animation.current_state == 'attack' and not self.has_hit_this_attack then
+    if self.is_attacking and self.animation.current_state == "attack" then
         local frame = self.animation.current_frame
-        local should_check_hit = (frame == 5 or frame == 6)
 
-        if should_check_hit then
-            local attack_hitbox = {
-                x = self.x + (self.direction * 20),
-                y = self.y,
-                hitboxW = 50,
-                hitboxH = 40
-            }
-            if player:checkCollision(attack_hitbox) then
-                player:take_damage(ATTACK_DAMAGE, self)
-                self.has_hit_this_attack = true -- Ensure it only hits once
+        if frame == 5 and not self.tried_frame5 then
+            self.tried_frame5 = true
+            if not self.damage_applied then
+                local hitbox = {
+                    x       = self.x + self.direction * 20,
+                    y       = self.y,
+                    hitboxW = 50,
+                    hitboxH = 40
+                }
+                if player:checkCollision(hitbox) then
+                    player:take_damage(ATTACK_DAMAGE, self)
+                    self.damage_applied = true
+                end
+            end
+        end
+
+        if frame == 6 and not self.tried_frame6 then
+            self.tried_frame6 = true
+            if not self.damage_applied then
+                local hitbox = {
+                    x       = self.x + self.direction * 20,
+                    y       = self.y,
+                    hitboxW = 50,
+                    hitboxH = 40
+                }
+                if player:checkCollision(hitbox) then
+                    player:take_damage(ATTACK_DAMAGE, self)
+                    self.damage_applied = true
+                end
             end
         end
     end
 end
 
----
--- Draws the Cogmauler, handling the offset for the attack animation.
-function Cogmauler:draw()
-    local offset_x = 0
-    local current_anim_name = self.animation.current_state
-    local sprite_width = (current_anim_name == 'attack') and ATTACK_WIDTH or IDLE_WALK_WIDTH
+function Cogmauler:check_ledges_and_walls()
+    if not self.on_ground then return end
 
-    -- The offset is half the difference in width, multiplied by the direction
-    -- to ensure the sprite expands outwards from the center.
-    if current_anim_name == 'attack' then
-        offset_x = (ATTACK_WIDTH - IDLE_WALK_WIDTH) / 2 * self.direction
+    local front_x = self.x + self.direction * (self.hitboxW / 2 + LEDGE_CHECK_DIST)
+    local ground_y = self.y + self.hitboxH / 2 + 1
+    if not self.scene.tilemap:getTileAtPixel(front_x, ground_y) then
+        self.vx = 0
+        self.patrol_dir = -self.patrol_dir
     end
 
-    local ox = sprite_width / 2
-    local oy = ANIM_HEIGHT / 2
+    local wall_x = self.x + self.direction * (self.hitboxW / 2 + WALL_CHECK_DIST)
+    local wall_y = self.y
+    if self.scene.tilemap:getTileAtPixel(wall_x, wall_y) then
+        self.vx = 0
+        self.patrol_dir = -self.patrol_dir
+    end
+end
 
-    self.animation:draw(self.x + offset_x, self.y, 0, -self.direction, 1, ox, oy)
+function Cogmauler:handle_stun_and_knockback(dt)
+    if self.stun_timer > 0 then
+        self.stun_timer = math.max(0, self.stun_timer - dt)
+        self.vx = 0
+    end
+    if self.is_knocked_back then
+        self.knockback_timer = math.max(0, self.knockback_timer - dt)
+        if self.knockback_timer <= 0 then
+            self.is_knocked_back = false
+        end
+    end
+end
+
+function Cogmauler:draw()
+    local anim = self.animation.current_state
+    local width = (anim == "attack") and ATTACK_WIDTH or IDLE_WALK_WIDTH
+    local offset = 0
+    if anim == "attack" then
+        offset = ((ATTACK_WIDTH - IDLE_WALK_WIDTH) / 2) * self.direction
+    end
+    local ox, oy = width / 2, ANIM_HEIGHT / 2
+    self.animation:draw(self.x + offset, self.y, 0, -self.direction, 1, ox, oy)
     self:draw_health_bar()
 end
 
----
--- Overrides the default knockback to give the Cogmauler a heavier feel.
--- @param source table The source of the damage.
 function Cogmauler:apply_knockback(source)
     if not self.is_knocked_back then
-        local knockback_strength = 20
+        local strength = 200
         local dx = self.x - source.x
-        if dx ~= 0 then
-            self.vx = (dx / math.abs(dx)) * knockback_strength
-        end
-        self.vy = -20 -- A much stronger upward hop
+        self.vx = (dx ~= 0) and (dx / math.abs(dx)) * strength or 0
+        self.vy = -100
         self.is_knocked_back = true
+        self.knockback_timer = 0.5
         self.on_ground = false
     end
 end

@@ -27,6 +27,7 @@ end
 
 --- Updates the particle.
 ---@param dt number The time since the last frame.
+---@param tilemap TileMap The tilemap of the scene
 function PhysicsParticle:update(dt, tilemap)
     -- Gravity
     self.vy = self.vy + self.gravity * dt
@@ -36,7 +37,7 @@ function PhysicsParticle:update(dt, tilemap)
     local newY = self.y + self.vy * dt
 
     -- Collision detection
-    if tilemap and tilemap:checkCollision(newX - self.radius, newY - self.radius, self.radius * 2, self.radius * 2) then
+    if tilemap and tilemap:checkCollision(newX - self.radius, newY - self.radius, self.radius * 2, self.radius * 2, false) then
         -- On collision, bounce and lose some velocity
         self.vy = -self.vy * self.bounciness
         self.vx = self.vx * self.bounciness
