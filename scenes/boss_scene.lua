@@ -72,7 +72,7 @@ function BossScene.new()
     self.enemy_projectiles      = {}
     self.boss                   = nil
     self.health_bar_particles   = {}
-    self.outline_shader         = nil
+    
     self.is_fading_out          = false
     self.fade_alpha             = 0
     return self
@@ -99,8 +99,7 @@ function BossScene:load()
     -- ui
     self.ui = UI.new(self)
 
-    -- shader
-    self.outline_shader = love.graphics.newShader("assets/shaders/outline.fs")
+    
 
     math.randomseed(os.time())
 
@@ -353,11 +352,7 @@ function BossScene:draw_boss_health_bar()
 
         -- Name
         love.graphics.setFont(self.customFont.font)
-        love.graphics.setShader(self.outline_shader)
-        self.outline_shader:send("outline_color", { 0, 0, 0, 1 })
-        self.outline_shader:send("outline_thickness", 1.0)
         love.graphics.print("The Painter", CANVAS_W / 2 - self.customFont.font:getWidth("The Painter") / 2, bar_y - 22)
-        love.graphics.setShader()
 
         -- Background
         love.graphics.setColor(0, 0, 0, 1)
